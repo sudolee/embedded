@@ -1,0 +1,17 @@
+#
+# Normal rules
+#
+
+*~
+*.swp
+cscope.*
+ncscope.*
+
+*.o
+*.a
+*.bin
+*.su
+
+*.patch
+*.rej
+*.orig
