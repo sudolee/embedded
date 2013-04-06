@@ -1,0 +1,72 @@
+
+== 伪指令 ==
+1, macro / endm (相当与C里的函数)
+	- 指令格式
+		.macro macroname {$param1} {$param2} ...
+		@commands
+		.endm
+	- note
+		macroname是定义的宏名, paramx是宏指令的参数, 当宏指令被展开式将被替换成相应的值, 类似于函数中的形式参数.
+		e.g. 
+		  .macro  func,val,len
+		  mov     r0, #\val
+		  mov     r1, #\len
+		  .endm
+	- 可以使用.if宏开关来定义宏指令, .exitm可以跳出宏
+		e.g. 
+		  .macro shiftleft reg, shift
+		  .if \shift < 0
+		  mov \reg, \reg, asr #-\shift
+		  .exitm
+		  .endif
+		  mov \reg, \reg, lsl #\shift
+		  .endm
+
+2, .rept (重复执行指令)
+	- 指令格式
+		.rept <repeat>
+		some commands...
+		.endr
+
+3, 局部标号: 向后跳用b, 向前跳用f, 比如:
+0:
+	b 0b
+	b 1f
+1:
+	nop
+
+== ARM指令 ==
+1, bic 位清除指令
+	bic{<cond>}{S} <Rd>, <Rn>, <shifter_operand>
+	将shifter_operand的反码和Rn按位做逻辑与运算, 结果存入Rd.
+
+2, orr 逻辑或操作
+	orr{<cond>}{S} <Rd>, <Rn>, <shifter_operand>
+	将shifter_operand和Rn按位逻辑或, 结果存入Rd.
+
+2, msr / mrs
+	cpsr寄存器到cpu寄存器的读写指令.
+	[Note]:
+		msr{<cond>} CPSR_<fields>, #<immediate>/<Rm>
+		msr{<cond>} SPSR_<fields>, #<immediate>/<Rm>
+		fields列表:
+		c, cpsr_c, cpsr中的控制位[0:7]
+		x, cpsr_x, cpsr中的扩展位
+		s, cpsr_s, cpsr中的状态位
+		f, cpsr_f, cpsr中的标志位
+
+3, mcr / mrc
+	协处理器寄存器到cpu寄存器的读写指令 (如果操作失败将产生指令异常中断)
+
+
+== gnu arm assembly ==
+1, 依赖机器(平台)的指令
+	- .arm 			使用arm模式汇编
+	- .thumb 		使用thumb模式汇编
+	- .code16		使用thumb模式汇编
+	- .code32		使用arm模式汇编
+	- .force_thumb	强制使用thumb模式汇编(即使不支持)
+	- .thumb_func	Mark entry point as thumb coded(force bx entry)
+	- .ltorg		Start a new literal pool
+
+2, 标号代表它所在的地址, 因而也可以用作函数或者变量.

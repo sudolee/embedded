@@ -1,0 +1,15 @@
+== How to download program into board ==
+1, bare board
+	1> H-Jtag -> Jtag on SOC
+		If there is a parallel port on your PC, H-Jtag has capacity to download
+		program into nand-flash or nor-flash on your bare board.
+		Most chips are supported by H-Jtag.
+		More details at http://www.hjtag.com
+
+	2> JLink -> Jtag on SOC
+		JLink has a supported nor-flash list, but not completely.
+		However, JLink could send data into memory via Jtag interface.
+		And many other useful debug functions.
+		Especially, it's cheap on taobao.com
+
+2, with...

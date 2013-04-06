@@ -1,0 +1,64 @@
+
+= how does it connect to SOC =
+1, leds
++------+--------+--------+--------+--------+
+| Name | nLED_1 | nLED_2 | nLED_3 | nLED_4 |
++------+--------+--------+--------+--------+
+| GPIO | GPB5   | GPB6   | GPB7   | GPB8   |
+| Func | nXBACK | nXREQ  | nXDACK1| nDREQ1 |
++------+--------+--------+--------+--------+
+
+2, Speaker
+                        VDD5V
+                        |__
+                         __Speaker
+     GPB0    R34=2K     /
+  Vi ---------^^^^-----|
+                        \>
+                        GND
+
+= how to play it =
+1, leds: low level enable
+2, speaker: PWM
+	Vi = low, off
+	Vi = high, on
+
+= how to configure =
+1, GPB control register
++----------+------------+-----+-------------------+-------------+
+| reg name | address    | R/W | description       | reset value |
++----------+------------+-----+-------------------+-------------+
+| GPBCON   | 0x56000010 | rw  | configure GPBs    | 0x0         |
+| GPBDAT   | 0x56000014 | rw  | data reg for GPBs | undefine    |
+| GPBUP    | 0x56000018 | rw  | pull-up disable   | 0x0         |
++----------+------------+-----+-------------------+-------------+
+
+2, GPB0~GPB10 functions
++--------+---------+-----------------------------------------------+
+| GPBCON | Bit     | description                                   |
++--------+---------+-----------------------------------------------+
+| GPB8   | [17:16] | 00=input, 01=output, 10=nXDREQ1, 11=reserved  |
+| GPB7   | [15:14] | 00=input, 01=output, 10=nXDACK1, 11=reserved  |
+| GPB6   | [13:12] | 00=input, 01=output, 10=nXBREQ,  11=reserved  |
+| GPB5   | [11:10] | 00=input, 01=output, 10=nXBACK,  11=reserved  |
+| GPB0   | [ 1:0 ] | 00=input, 01=output, 10=TOUT0,   11=reserved  |
++--------+---------+-----------------------------------------------+
+
+3, state control
++-----------+---------+-----------------------------------------------+
+| GPBDAT    | Bit     | description                                   |
++-----------+---------+-----------------------------------------------+
+| GPB[10:0] | [10:0]  | config as input: show pins state (read)       |
+|           |         | config as output: set pins state (write)      |
+|           |         | config as func: undefined value will be read  |
++-----------+---------+-----------------------------------------------+
+
+4, GPBUP
+	pull up function.
+	灌电流: input current
+	拉电流: output current
+
+= result =
+GPBCON = *0x56000010 | (1 << 16) | (1 << 14) | (1 << 12) | (1 << 10) | (1 << 0);
+(p.s. GPB0 configure as output, not PWM.)
+GPBUP = *0x56000018 & ~((1 << 8) | (1 << 7) | (1 << 6) | (1 << 5) | (1 << 0))
