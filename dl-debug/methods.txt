@@ -11,5 +11,7 @@
 		However, JLink could send data into memory via Jtag interface.
 		And many other useful debug functions.
 		Especially, it's cheap on taobao.com
+		Commands details in JLink-commands-list.txt
+
 
 2, with...

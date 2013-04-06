@@ -1,15 +1,10 @@
 
-#.c
-#arm-linux-gnueabi-gcc -g -Os -fno-common -msoft-float -I/home/sudolee/open/u-boot/include -fno-builtin -ffreestanding -nostdinc -pipe -marm -mno-thumb-interwork -mabi=aapcs-linux -march=armv4 -Wall -Wstrict-prototypes -fno-stack-protector -Wno-format-nonliteral -Wno-format-security -fstack-usage -o timer.o timer.c -c
-
-#.s
-#	arm-linux-gnueabi-gcc -g -Os -fno-common -msoft-float -I/home/sudolee/open/u-boot/include -fno-builtin -ffreestanding -nostdinc -pipe -marm -mno-thumb-interwork -mabi=aapcs-linux -march=armv4 -o start.o start.S -c
-
-OPTIONS = -Os -fno-common -msoft-float -fno-builtin -ffreestanding -nostdinc -pipe -marm -mno-thumb-interwork -mabi=aapcs-linux -march=armv4
+OPTIONS=-Os -fno-common -fno-builtin -ffreestanding -nostdinc -pipe -marm -march=armv4 -mcpu=arm920t -mno-thumb-interwork -mlittle-endian -mabi=atpcs -msoft-float
 
 all:
 	arm-linux-gnueabi-gcc ${OPTIONS} leds-speaker.s -c
-	arm-linux-gnueabi-ld -e _start leds-speaker.o -o leds-speaker
+	arm-linux-gnueabi-ld -e _start leds-speaker.o -o leds-speaker.elf
+	arm-linux-gnueabi-objcopy -S -O binary leds-speaker.elf leds-speaker.bin
 
 clean:
-	rm -f leds-speaker.o leds-speaker
+	rm -f leds-speaker.o leds-speaker.elf leds-speaker.bin

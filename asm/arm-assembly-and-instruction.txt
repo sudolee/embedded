@@ -1,4 +1,13 @@
 
+== overview ==
+<opcode>{<cond}{S} <Rd>, <Rn>, <shifter_operand>
+	opcode: 操作符编码
+	cond: 条件符
+	S: 是否影响cpsr标志位
+	Rd: 目标寄存器
+	Rn: 地一个操作数寄存器
+	shifter_operand: 第二个操作数
+
 == 伪指令 ==
 1, macro / endm (相当与C里的函数)
 	- 指令格式
@@ -35,6 +44,91 @@
 1:
 	nop
 
+== 寻址方式 ==
+= 数据处理指令寻址方式 =
+	<opcode>{<cond>}{S} <Rd>, <Rn>, <shift_operand>
+	寻址方式指shift_operand的寻址方式.
+
+1, 立即数
+2, 寄存器方式
+	e.g:
+	mov r3, r2
+	add r0, r1, r2
+
+3, 寄存器移位方式: shift_operand为移位后的值
+	逻辑移位:
+		lsl: 逻辑左移
+		lsr: 逻辑右移
+
+	算数移位:
+		asr: 算数右移
+		asl: 算数左移
+
+	循环移位:
+		ror: 循环右移
+		rol: 循环左移
+
+	扩展循环移位:
+		rrx: 扩展循环右移
+	e.g:
+	mov r0, r1, lsl #3		@ r0 = r1 << 3
+	add r0, r1, r2, lsl #3  @ r0 = r1 + (r2 << 3)
+	mov r0, r1, lsl r2      @ r0 = r1 << r2
+	sub r0, r1, r2, lsl r3  @ r0 = r1 - (r2 << r3)
+
+= 字/无符号子的load/store指令的寻址方式 =
+	load指令:  从内存读取数据, 放入寄存器.
+	store指令: 从寄存器读取数据, 放入内存.
+
+	该类指令的寻址由两部分组成:基址寄存器+地址偏移量
+	基址寄存器: 任一通用寄存器
+	地址偏移量: 3种寻址方式
+
+1, "3种"地址偏移量寻址方式
+	[立即数]
+	[寄存器]
+	[寄存器及1个偏移常数]
+
+2, "3种寻址方式"的"3种"地址计算方法
+	偏移量方法:
+		[<Rn>, #+/-<offset_12>]
+		[<Rn>, #+/-<Rm>]
+		[<Rn>, #+/-<Rm>, <shift> #<shift_imm>]
+	e.g
+		ldr r0, [r1, #12]        @ 将内存单元r1+12中的字读取到r0
+
+	事后更新/事先访问:
+		[<Rn>, #+/-<offset_12>]!
+		[<Rn>, #+/-<Rm>]!
+		[<Rn>, #+/-<Rm>, <shift> #<shift_imm>]!
+	e.g
+		ldr r0, [r1, #12]!        @ 将内存单元r1+12中的字读取到r0, 然后, r1=r1+12
+
+	事先更新/事后访问:
+		[<Rn>], #+/-<offset_12>
+		[<Rn>], #+/-<Rm>
+		[<Rn>], #+/-<Rm>, <shift> #<shift_imm>
+	e.g
+		ldr r0, [r1], #12        @ 将内存单元r1中的字读取到r0, 然后, r1=r1+12
+
+= 批量load/store指令的寻址方式 =
+	LDM|STM{<cond>}<addressing_mode> <Rn>{!}, <registers>{^}
+	Note:
+		!: 是否写入
+		^: ???????
+
+1, addressing_mode
+	IA:
+	IB:
+	DA:
+	DB:
+	
+	NOTE: 对应堆栈操作的寻址方式
+		FD:
+		EF:
+		FA:
+		EA:
+
 == ARM指令 ==
 1, bic 位清除指令
 	bic{<cond>}{S} <Rd>, <Rn>, <shifter_operand>
@@ -57,7 +151,6 @@
 
 3, mcr / mrc
 	协处理器寄存器到cpu寄存器的读写指令 (如果操作失败将产生指令异常中断)
-
 
 == gnu arm assembly ==
 1, 依赖机器(平台)的指令

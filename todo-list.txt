@@ -1,5 +1,6 @@
 
 1, Spec and learning note.
+	Difference between: lsl, lsr, asr, asl, ror, rol, rrx. <-- ?
 
 2, Download program into board.
 

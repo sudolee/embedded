@@ -1,0 +1,135 @@
+
+= introduce =
+源文件-> 预处理-> 编译-> 汇编-> 链接-> 可执行文件(.elf, .exe)
+
+1, 预处理
+	将源代码中, 以"#"开头的预处理命令展开(头文件, 宏等), 输出*.i文件.
+	tool: arm-linux-gnueabi-gcc
+2, 编译
+	将从c/cpp代码(*.i)翻译为汇编代码. 输出*.s文件.
+	tool: cc1
+3, 汇编
+	将汇编代码(*.s)翻译为对应的机器码. 输出ELF目标文件(obj文件), 输出*.o文件.
+	tool: arm-linux-gnueabi-as
+4, 链接
+	将obj文件与系统库的obj文件, 及库文件合并起来生成可执行文件. 输出*.elf文件.
+	tool: arm-linux-gnueabi-ld
+
+= tool chains =
+1, gcc
+	除预处理外, 实际上, gcc是cc1, as, ld的前端, 相应的编译工作需要各个tool独立完成.
+	[options]
+	-E: 只预处理
+		e.g
+		arm-linux-gnueabi-gcc -E hello.c -o hello.i
+	-S: 只编译(cc1)
+		e.g
+		arm-linux-gnueabi-gcc -S hello.c -o hello.s
+	-c: 只汇编(as)
+		e.g
+		arm-linux-gnueabi-gcc -c hello.c -o hello.o
+	-Ipath
+		path指定头文件搜索路径.
+	-Lpath
+		path指定库文件搜索路径.
+
+2, ld
+	链接器ld将多个目标文件(*.o)和库文件连接为可执行文件.
+	[options]
+	-static
+		静态链接
+	-shared
+		动态链接
+	-nostdlib
+		不包含标准启动文件和库文件
+	-llibname.a
+		链接名字为name的静态库文件
+
+	[section limit]
+	-T:
+		指定可执行文件各段起始地址
+		-Ttext StartAddress
+		-Tdata StartAddress
+		-Tbss  StartAddress
+		e.g
+		arm-linux-gnueabi-ld -Ttext 0x0 hello.o -o hello.elf
+	-Tnamd.lds:
+		使用lds链接脚本指定各段地址
+		e.g arm-linux-gnueabi-ld -Tname.lds hello.o -o hello.elf
+	e.g
+		OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")  @ 输出文件格式
+		ENTRY(_start)                                                           @ 程序入口
+		SECTIONS
+		{
+			. = 0x00000000;                                                     @ 当前地址
+			. = ALIGN(4);                                                       @ 地址对齐
+			.text : { *(.text*) }                                               @ 将所有的.text*(通配)放置到可执行文件中的.text段
+
+			. = ALIGN(4);
+			.data : { *(.data*) }
+
+			. = ALIGN(4);
+			.bss : { *(.bss*) }
+
+			/DISCARD/ : { *(.dynstr*) }                                         @ /DISCARD/后面的段不会包含进可执行文件
+			/DISCARD/ : { *(.dynamic*) }
+			/DISCARD/ : { *(.plt*) }
+			/DISCARD/ : { *(.interp*) }
+			/DISCARD/ : { *(.gnu*) }
+		}
+
+3, objcopy
+	Copy and translate object files.
+	[options]
+	-O bfdname:
+		用指定的格式输出文件, bfdname是BFD库里描述的标准格式.
+	-S|--strip-all:
+		不复制重定位和符号信息.
+	e.g
+	arm-linux-gnueabi-ld -S -O binary hello.elf hello.bin
+
+4, objdump
+	Display information from object files.
+	[options]
+	-m machine|--architecture=machine: 指定架构,如:-m arm
+	-d: 反汇编可执行段
+	-D: 反汇编所有段
+	e.g
+		反汇编elf
+		arm-linux-gnueabi-objdump -D hello.elf
+		反汇编二进制文件
+		arm-linux-gnueabi-objdump -b binary -D hello.bin
+
+= gcc options =
+1, assembly
+	-Os -fno-common -fno-builtin -ffreestanding -nostdinc -pipe -marm -march=armv4 -mcpu=arm920t -mno-thumb-interwork -mlittle-endian -mabi=atpcs -msoft-float
+2, c
+	-Os -fno-common -fno-builtin -ffreestanding -nostdinc -pipe -marm -march=armv4 -mcpu=arm920t -mno-thumb-interwork -mlittle-endian -mabi=atpcs -msoft-float
+	-fno-stack-protector -fstack-usage -Wall -Wstrict-prototypes -Wno-format-nonliteral -Wno-format-security
+3, description (more details in manpages & [info gcc])
+	-march/-mcpu:
+		GCC uses this name to determine what kind of instructions it can emit when generating assembly code.
+	-marm/-mthumb:
+		Select between generating code that executes in ARM and Thumb states.
+	-msoft-float:
+	-mno-thumb-interwork: no thumb.
+	-mabi: ARM-THUMB procedure call standard
+		Other abis: apcs-gnu, atpcs, aapcs, aapcs-linux and iwmmxt
+
+	-Os: Optimize for size.
+		Other Optimize levels: -O  -O0  -O1  -O2  -O3  -Os -Ofast
+	-fno-common: In C code, controls the placement of uninitialized global variables.
+		For better performance.
+	-nostdinc:
+		Do not search the standard system directories for header files.  Only the directories you have specified with -I options.
+	-pipe:
+		Use pipes rather than temporary files for communication between the various stages of compilation.
+	-fno-buildtin: 
+	-ffreestanding:
+		This implies -fno-builtin. A freestanding environment is one in which the standard library may not exist, and program 
+		startup may not necessarily be at "main".
+
+	-fno-stack-protector: disable feature below
+		Emit extra code to check for buffer overflows, such as stack smashing attacks.
+	-fstack-usage: (*.su)
+		Makes the compiler output stack usage information for the program, on a per-function basis.
