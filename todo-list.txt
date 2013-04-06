@@ -1,6 +1,8 @@
 
 1, Spec and learning note.
-	Difference between: lsl, lsr, asr, asl, ror, rol, rrx. <-- ?
+	ARM assembly:
+		Difference between: lsl, lsr, asr, asl, ror, rol, rrx. <-- ?
+		What's ! and ^ in ldm|stm <-- ?
 
 2, Download program into board.
 
