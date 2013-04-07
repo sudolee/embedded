@@ -2,12 +2,13 @@
 1, Spec and learning note.
 	ARM assembly:
 		Difference between: lsl, lsr, asr, asl, ror, rol, rrx. <-- ?
-		What's ! and ^ in ldm|stm <-- ?
+		What're ! and ^ in ldm|stm? <-- Done [asm/arm-assembly-and-instruction.txt]
 
 2, Download program into board.
 
 3, Write an example to:
-	control leds and beep.
+	control leds and speaker.
+	PWM.
 
 4, Uart using.
 

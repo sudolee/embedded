@@ -95,6 +95,7 @@
 		[<Rn>, #+/-<Rm>]
 		[<Rn>, #+/-<Rm>, <shift> #<shift_imm>]
 	e.g
+		ldr r0, [r1, #-12]        @ 将内存单元r1-12中的字读取到r0
 		ldr r0, [r1, #12]        @ 将内存单元r1+12中的字读取到r0
 
 	事后更新/事先访问:
@@ -102,32 +103,106 @@
 		[<Rn>, #+/-<Rm>]!
 		[<Rn>, #+/-<Rm>, <shift> #<shift_imm>]!
 	e.g
-		ldr r0, [r1, #12]!        @ 将内存单元r1+12中的字读取到r0, 然后, r1=r1+12
+		ldr r0, [r1, r2]!        @ 将内存单元r1+r2中的字读取到r0, 如果cond满足, r1=r1+r2
 
 	事先更新/事后访问:
 		[<Rn>], #+/-<offset_12>
 		[<Rn>], #+/-<Rm>
 		[<Rn>], #+/-<Rm>, <shift> #<shift_imm>
 	e.g
-		ldr r0, [r1], #12        @ 将内存单元r1中的字读取到r0, 然后, r1=r1+12
+		ldr r0, [r1], r2 lsl #1        @ 将内存单元r1中的字读取到r0,如果cond满足,r1=r1+(r2<<1)
 
 = 批量load/store指令的寻址方式 =
-	LDM|STM{<cond>}<addressing_mode> <Rn>{!}, <registers>{^}
-	Note:
-		!: 是否写入
-		^: ???????
+(p.s 这部分ARM体系结构一书上错误比较多, 详见armv4/5 spec第5章第4节.)
 
-1, addressing_mode
-	IA:
-	IB:
-	DA:
-	DB:
-	
-	NOTE: 对应堆栈操作的寻址方式
-		FD:
-		EF:
-		FA:
-		EA:
+LDM|STm{<COND>}<addressing_mode> <Rn>{!}, <reg_list>{^}
+    列表用"{}"括起来, 多个reg用","隔开, 连续的寄存器用"-"连接.
+    e.g ldm r0!, {r2-r5,r7} ; 把r0到r0+16所指向的内存单元, 依次拷贝到r2~r5,r6; r0=r0+16.
+
+1, 指令编码:
++---------+----+----+----+----+----+----+----+----+---------+----------+
+| 31 ~ 28 | 27 | 26 | 25 | 24 | 23 | 22 | 21 | 20 | 19 ~ 16 | 15 ~ 0   |
++---------+----+----+----+----+----+----+----+----+---------+----------+
+|   cond  |  1 |  0 |  0 |  P |  U |  S |  W |  L |    Rn   | reg-list |
++---------+----+----+----+----+----+----+----+----+---------+----------+
+  L: L=1, load; L=0, store.
+  U: 表示该指令所要操作的内存块在基址寄存器Rn所指向内存单元的上方(U=1), 或者下方(U=0).
+
+  P:
+    P=0, 表示基址寄存器Rn所指向的内存单元, 包含在该指令所要操作的内存块里面.
+      U=0, Rn指向要操作的内存块最上方的内存单元.
+      U=1, Rn指向要操作的内存块最下方的内存单元.
+    P=1, 表示基址寄存器Rn所指向的内存单元, 不包含在该指令所要操作的内存块里面.
+      U=0, 要操作的内存块在Rn指向的内存单元下方.
+      U=1, 要操作的内存块在Rn指向的内存单元上方.
+      
+  S: /* 在user/system mode使用"^"将产生不可预期的后果 */
+    reg_list包含pc时, S表示把spsr load到cpsr.
+    reg_list不包含pc时, S表示cpu在特权模式时, 使用user mode的物理寄存器, 而不是当前mode的.
+    
+  W: 操作完内存块后, 需要更新Rn.
+    U=1时, Rn=Rn+4*(reg个数); U=0时, Rn=Rn-4*(reg个数).
+
+  reg_list: [15：0], 每个bit表示一个reg; bit0->reg0, bit15->r15.
+
+2, <addressing_mode>的4种计算方法
+i), IA(Increment After)
+  start_address = Rn
+  end_address = Rn + (Number_of_set_bits_in(reg_list) * 4) - 4
+  if ConditionPassed(cond) and W == 1; then
+    Rn = Rn + (Number_of_set_bits_in(reg_list) * 4)
+    
+ii), IB(Increment Before)
+  start_address = Rn + 4
+  end_address = Rn + (Number_of_set_bits_in(reg_list) * 4)
+  if ConditionPassed(cond) and W == 1; then
+    Rn = Rn + (Number_of_set_bits_in(reg_list) * 4)
+    
+iii), DA(Decrement After)
+  start_address = Rn - (Number_of_set_bits_in(reg_list) * 4) + 4
+  end_address = Rn
+  if ConditionPassed(cond) and W == 1; then
+    Rn = Rn - (Number_of_set_bits_in(reg_list) * 4)
+
+iv), DB(Decrement Before)
+  start_address = Rn - (Number_of_set_bits_in(reg_list) * 4)
+  end_address = Rn - 4
+  if ConditionPassed(cond) and W == 1; then
+    Rn = Rn - (Number_of_set_bits_in(reg_list) * 4)
+
+3, 堆栈(stack): ATPCS使用FD栈.
+i), 堆栈类型: FD, ED, FA, EA
+Full stack:  sp(stack point)指向最后一个已用单元.
+Empty stack: sp指向第一个未用单元.
+Descending stack: 向低内存地址增长
+Ascending stack: 向高内存地址增长
+
+ii), 堆栈操作:
+LDM addressing mode
++-----------+-------+---+---+---+
+| Non-stack | stack | L | P | U |
++-----------+-------+---+---+---+
+| LDMDA     | LDMFA | 1 | 0 | 0 |
+| LDMIA     | LDMFD | 1 | 0 | 1 |
+| LDMDB     | LDMEA | 1 | 1 | 0 |
+| LDMDA     | LDMED | 1 | 1 | 1 |
++-----------+-------+---+---+---+
+
+STM addressing mode
++-----------+-------+---+---+---+
+| Non-stack | stack | L | P | U |
++-----------+-------+---+---+---+
+| STMDA     | STMED | 0 | 0 | 0 |
+| STMIA     | STMEA | 0 | 0 | 1 |
+| STMDB     | STMFD | 0 | 1 | 0 |
+| STMIB     | STMFA | 0 | 1 | 1 |
++-----------+-------+---+---+---+
+
+4, 总结
+before: P=1, Rn不包含在该指令所要操作的内存块里面
+after:  P=0, Rn包含在该指令所要操作的内存块里面
+Decrement: U=0, 内存块在Rn下方
+Increment: U=1, 内存块在Rn上方
 
 == ARM指令 ==
 1, bic 位清除指令

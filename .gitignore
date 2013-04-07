@@ -9,6 +9,7 @@ ncscope.*
 
 *.o
 *.a
+*.elf
 *.bin
 *.su
 

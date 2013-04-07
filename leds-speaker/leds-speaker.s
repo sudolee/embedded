@@ -79,3 +79,5 @@ delay:
     subs r4, r4, #1         @ Note: cpsr_f changed, bits[31:24]
     bne 0b
     mov pc, lr              @ return
+
+.end
