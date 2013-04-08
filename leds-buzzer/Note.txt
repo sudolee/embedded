@@ -8,10 +8,10 @@
 | Func | nXBACK | nXREQ  | nXDACK1| nDREQ1 |
 +------+--------+--------+--------+--------+
 
-2, Speaker
+2, Buzzer
                         VDD5V
                         |__
-                         __Speaker
+                         __Buzzer
      GPB0    R34=2K     /
   Vi ---------^^^^-----|
                         \>
@@ -19,7 +19,7 @@
 
 = how to play it =
 1, leds: low level enable
-2, speaker: PWM
+2, buzzer: PWM
 	Vi = low, off
 	Vi = high, on
 
@@ -59,6 +59,62 @@
 	拉电流: output current
 
 = result =
-GPBCON = *0x56000010 | (1 << 16) | (1 << 14) | (1 << 12) | (1 << 10) | (1 << 0);
-(p.s. GPB0 configure as output, not PWM.)
-GPBUP = *0x56000018 & ~((1 << 8) | (1 << 7) | (1 << 6) | (1 << 5) | (1 << 0))
+*GPBCON &= ~(3 << 16 | 3 << 14 | 3 << 12 | 3 << 10 | 3 << 0)
+*GPBCON |=  (1 << 16 | 1 << 14 | 1 << 12 | 1 << 10 | 1 << 0)
+*GPBUP &= ~(1 << 8 | 1 << 7 | 1 << 6 | 1 << 5 | 1 << 0)
+
+	p.s.
+		So far, GPB0 configure as output, not PWM.
+
+= pwm timer =
+1, GPB0 configure as TOUT0 function.
+2, 
+                            TCMPB0  TCNTB0
+                              |       |
+prescaler-----> divider-----> ctrl logic-----> TOUT0
+   8-bit        1/2
+                1/4
+                1/8
+                1/16
+                TCLK0
+
+3, registers
++-------+------------+------------------------------------+-------------+
+| reg   | adress     | description                        | reset value |
++-------+------------+------------------------------------+-------------+
+| TCFG0 | 0x51000000 | [23:16] dead zone len              | 0x00        |
+|       |            | [7:0] prescaler for timer0,1       | 0x00        |
++-------+------------+------------------------------------+-------------+
+| TCFG1 | 0x51000004 | [23:16] 0000:all interrupt         | 0x0000      |
+|       |            |         0001:timer0 DMA mode       |             |
+|       |            | [3:0] MUX input for pwm timer0     | 0x0000      |
+|       |            |   0000:1/2; 0001:1/4; 0010:1/8;    |             |
+|       |            |   0011:1/16; 01xx:External TCLK0   |             |
++-------+------------+------------------------------------+-------------+
+| TCON  | 0x51000008 | [4] dead zone:0=disable, 1=enable  | 0x0         |
+|       |            | [3] 0: One-shot; 1: auto reload    | 0x0         |
+|       |            | [2] 0: inverter off; 1: on         | 0x0         |
+|       |            | [1] 0: no opt; 1: update TCNTB0 &  | 0x0         |
+|       |            | [0] 0: stop; 1: start Timer0       | 0x0         |
++-------+------------+------------------------------------+-------------+
+
+4, ctrl steps:
+	i), init TCNTB0 and TCMPB0
+	ii), set update timer manual.
+	iii), start timer0, and clear manual update bit.
+
+5, result:
+TCFG0: left default
+*TCFG1 &= ~(0xf << 16); *TCFG1 |= 0x3;
+*TCON &= ~(1 << 4)
+
+
+
+
+
+
+
+
+
+
+

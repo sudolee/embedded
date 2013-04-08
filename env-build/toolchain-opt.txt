@@ -56,6 +56,9 @@
 	-Tnamd.lds:
 		使用lds链接脚本指定各段地址
 		e.g arm-linux-gnueabi-ld -Tname.lds hello.o -o hello.elf
+		Note:
+			lds脚本中定义的符号, 可以在代码中用ldr伪指令获取其所在地址.
+			e.g ldr r0, =__bss_start ; 将__bss_start所在地址load到r0
 	e.g
 		OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")  @ 输出文件格式
 		ENTRY(_start)                                                           @ 程序入口
@@ -69,7 +72,9 @@
 			.data : { *(.data*) }
 
 			. = ALIGN(4);
+			__bss_start = .;
 			.bss : { *(.bss*) }
+			__bss_end = .;
 
 			/DISCARD/ : { *(.dynstr*) }                                         @ /DISCARD/后面的段不会包含进可执行文件
 			/DISCARD/ : { *(.dynamic*) }
@@ -133,3 +138,13 @@
 		Emit extra code to check for buffer overflows, such as stack smashing attacks.
 	-fstack-usage: (*.su)
 		Makes the compiler output stack usage information for the program, on a per-function basis.
+
+= Other gcc options =
+1, -D: define a macro.
+	e.g
+	gcc -DDEBUG hello.c
+	In hello.c:
+		#ifdef DEBUG
+			/* do somethind */
+		#endif
+
