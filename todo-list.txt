@@ -7,8 +7,8 @@
 2, Download program into board.
 
 3, Write an example to:
-	control leds and speaker.
-	PWM.
+	control leds and buzzer.
+	PWM music box(happy goddess).
 
 4, Uart using.
 
