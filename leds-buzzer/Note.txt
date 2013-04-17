@@ -69,14 +69,14 @@
 = pwm timer =
 1, GPB0 configure as TOUT0 function.
 2, 
-                            TCMPB0  TCNTB0
-                              |       |
-prescaler-----> divider-----> ctrl logic-----> TOUT0
-   8-bit        1/2
-                1/4
-                1/8
-                1/16
-                TCLK0
+									  TCMPB0  TCNTB0
+									    |       |
+Pclk----> prescaler-----> divider-----> ctrl logic-----> TOUT0
+12MHz     8-bits          1/2
+          0~255           1/4           0 ~ 65535
+						  1/8
+						  1/16
+						  TCLK0
 
 3, registers
 +-------+------------+------------------------------------+-------------+
@@ -98,23 +98,84 @@ prescaler-----> divider-----> ctrl logic-----> TOUT0
 |       |            | [0] 0: stop; 1: start Timer0       | 0x0         |
 +-------+------------+------------------------------------+-------------+
 
-4, ctrl steps:
+4, ctrl flow:
 	i), init TCNTB0 and TCMPB0
 	ii), set update timer manual.
 	iii), start timer0, and clear manual update bit.
 
-5, result:
-TCFG0: left default
-*TCFG1 &= ~(0xf << 16); *TCFG1 |= 0x3;
-*TCON &= ~(1 << 4)
+5, pitch and bit map
+                     Bits Map
+ +----------+-----+-----+-----+-----+------------+----------+
+ | reserved | beat                  | level      | pitch    |
+ +----------+-----+-----+-----+-----+------------+----------+
+ | 31 ~ 12  | 11  | 10  |  9  |  8  | 7 ~ 4      | 3 ~ 0    |
+ +----------+-----+-----+-----+-----+------------+----------+
+ |          | 1/16| 1/8 | 1/4 | 1/2 | 0000: migh | 0 ~ 7    |
+ +----------+-----+-----+-----+-----+ 0001: low  +----------+
+                                    | 0010: high |
+                                    +------------+
 
+https://zh.wikipedia.org/wiki/%E9%9F%B3%E7%AC%A6
+http://zh.wikipedia.org/wiki/%E9%9F%B3%E9%AB%98
 
+6,
+  __   __
+__| |__| |__
+  \   /
+	T
+f = 1/T
+f = Pclk/(prescaler*divider*tcntb0)
+divider*tcntb0 = Pclk/(f*prescaler)
 
+7,
+prescaler = 2, 4, 8, 16
+divider = 0~255
+tcntb0 = 0~65535
+Note: 1=4D
++------+-------+---------+-----------+---------+---------+
+| name | level | req(Hz) | prescaler | divider | tcntb0  |
++------+-------+---------+-----------+---------+---------+
+| do   | migh  | 293.66  | 8         | 0       | 5108    |
+| re   | migh  | 329.63  | 8         | 0       | 4551    |
+| mi   | migh  | 349.23  | 8         | 0       | 4295    |
+| fa   | migh  | 392.00  | 8         | 0       | 3827    |
+| sol  | migh  | 440,00  | 8         | 0       | 3409    |
+| la   | migh  | 493.88  | 8         | 0       | 3037    |
+| si   | migh  | 523.25  | 8         | 0       | 2867    |
++------+-------+---------+-----------+---------+---------+
 
+p.s
+	if low pitch, prescaler = 1/16;
+	if migh pitch, prescaler = 1/8;
+	if high pith, prescaler = 1/4;
+	So, we only calculate migh pitchs config table. Then set prescaler
+		according to bit[4:7] in pitch bits map.
 
+8, code flow
+	a) load next pitch
+		- store offset into memory
+		- if the last, clear offset and turn around
+	b) load pwm configure info
+		- accroding the value of pitch bit[3:0](do,re,mi,fa,sol,la,si)
+	c) check low/migh/high pitch?
+		- accroding the value of pitch bit[7:4](see bits map)
+		- then update divider(1/2, 1/4, 1/8, 1/16)
+	d) update pwm timer0
+	e) calc delay
+		- accroding to the value of pitch bit[11:8]
+	f) light leds
+		- stroe counter into memory
+	g) goto (a)
 
+9, happy goddess
+= original =
+3, 3, 4, 5,  5, 4, 3, 2,        1, 1, 2, 3,       3., 2_, 2, 2
+3, 3, 4, 5,  5, 4, 3, 2,        1, 1, 2, 3,       2., 1_, 1, 1
+2, 2, 3, 1,  2, 3_, 4_, 3, 1,   2, 3_, 4_, 3, 2,  1, 2, 5low, 3
+3, 3, 4, 5,  5, 4, 3, 4_,  2_,  1, 1, 2, 3,       2., 1_, 1, 1
 
-
-
-
-
+= encoded =
+3, 3, 4, 5,  5, 4, 3, 2,        1, 1, 2, 3,       3, 3+(1<<8), 2+(1<<8), 2, 2
+3, 3, 4, 5,  5, 4, 3, 2,        1, 1, 2, 3,       2, 2+(1<<8), 1+(1<<8), 1, 1
+2, 2, 3, 1,  2, 3+(1<<8), 4+(1<<8), 3, 1,   2, 3+(1<<8), 4+(1<<8), 3, 2,  1, 2, 5+(1<<4), 3
+3, 3, 4, 5,  5, 4, 3, 4+(1<<8), 2+(1<<8),  1, 1, 2, 3,       2, 2+(1<<8), 1+(1<<8), 1, 1

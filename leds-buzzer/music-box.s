@@ -20,7 +20,7 @@ reset:
 	mov r0, #0x0
 	str r0, [r1]
 
-	# configure GPB0, GPB5~8 as output #
+	# configure GPB0, GPB5~8 #
 	ldr r1, =0x56000010		@GPBCON
 	ldr r0, [r1]
     bic r0, r0, #0x3fc00	@ clear [17:10]
@@ -41,7 +41,6 @@ reset:
 	# set stack pointer
 	ldr r12, =tiny_stack_top
 #
-# void main(void);
 # @r11: value of next pitch
 main:
 	bl next_pitch
@@ -49,33 +48,33 @@ main:
 
 	bl get_pwm_conf
 
-	tst r0, #0x30		@ is low or high pitch ?
-	beq tcfg0_updated	@ migh pitch, use default tcfg0 
-	tst r0, #(1<<5)
-	movne r0, #3		@ low pitch, set tcfg0 1/16
-	tst r0, #(1<<6)
-	movne r0, #1		@ high pitch, set tcfg0 1/4
+	tst r11, #0x30		@ is low or high pitch ?
+	beq tcfg0_ready		@ migh pitch, use default tcfg0 
+	tst r11, #(1<<4)
+	movne r1, #3		@ low pitch, set tcfg0 1/16
+	tst r11, #(1<<5)
+	movne r1, #1		@ high pitch, set tcfg0 1/4
 
-tcfg0_updated:
-	# now: r0=tcfg1, r1=tcfg0, r2=tcntb0
+tcfg0_ready:
+	# now: r0=tcfg0, r1=tcfg1, r2=tcntb0
 	bl pwm_update
 
 	and r1, r11, #0xF00
 	cmp r1, #0
-	moveq r0, #4		@ this pitch keep 400ms, time=1beat
+	moveq r0, #4		@ this pitch keep 100ms*4, time=beat*1
 	beq 0f
 	tst r11, #(1<<8)
-	movne r0, #2		@ this pitch keep 200ms, time=beat/2
+	movne r0, #2		@ this pitch keep 100ms*2, time=beat*1/2
 	tst r11, #(1<<9)
-	movne r0, #1		@ this pitch keep 100ms, time=beat/4
-	#TODO: 1/8 not used#
+	movne r0, #1		@ this pitch keep 100ms*1, time=beat*1/4
+	#TODO: 1/8 not supported#
 0:
 	bl lights
 	b main
 
 #
 # int next_pitch(void);
-# return value of next pitch
+# 	return value of next pitch
 next_pitch:
 	ldr r2, =goddess_start
 	ldr r1, =goddess_current_offset
@@ -99,27 +98,27 @@ get_pwm_conf:
 	mov pc, lr
 
 #
-# void pwm_update(int tcfg1, int tcfg0, int tcntb0, int tcmpb0);
-# So far, tcmpb0 not used.
+# void pwm_update(int tcfg0, int tcfg1, int tcntb0, int tcmpb0);
+# 	So far, tcmpb0 not used.
 #
 pwm_update:
 	stmdb r12!, {r4,r5,lr}
 
 	# tcfg0 configure
-	and r1, r1, #0xFF
+	and r0, r0, #0xFF
 	ldr r4, =0x51000000 @ TCFG0 -> [7:0] for timer0/1 prescaler(0~255)
 	ldr r5, [r4]
 	bic r5, r5, #0xFF	@ clear [7:0]
-	orr r1, r1, r5		@ set [7:0]
-	str r1, [r4]
+	orr r0, r0, r5		@ set [7:0]
+	str r0, [r4]
 
 	# TCFG1 -> [3:0] 0000=1/2,0001=1/4,0010=1/8,0011=1/16,01xx=external tclk0
-	and r0, r0, #0xF
+	and r1, r1, #0xF
 	ldr r4, =0x51000004
 	ldr r5, [r4]
 	bic r5, r5, #0xF	@ clear [3:0]
-	orr r0, r0, r5		@ set [3:0]
-	str r0, [r4]		@ divide ?
+	orr r1, r1, r5		@ set [3:0]
+	str r1, [r4]		@ divide ?
 
 	ldr r4, =0x5100000C @ TCNTB0
 	str r2, [r4]
@@ -141,13 +140,11 @@ pwm_update:
 
 # void lights(int delay);
 lights:
-	stmdb r12!, {r4-r8,lr}
+	stmdb r12!, {r4-r7,lr}
 
 	ldr r5, =0x56000014 @GPBDAT
 	ldr r1, =lights_counter
 	ldm r1, {r6,r7}
-#	mov r6, #0
-#	mov r7, #0x20			@ 0010 0000
 1:
 	ldr r4, [r5]
 	orr r4, #0x1E0			@ mask all leds
@@ -159,26 +156,25 @@ lights:
 	str r4, [r5]
 	bl delay
 	subs r0, r0, #1
-	beq 2f
-	b 1b
-2:
+	bne 1b
+
 	stm r1, {r6,r7}
-	ldmia r12!, {r4-r8,pc}
+	ldmia r12!, {r4-r7,pc}
 .ltorg
 lights_counter:
-	.word 0, 0x20			@ r6, r7
+	.word 0, 0x20			@ default: r6, r7
 
 #
-# Input clock is ?
-# delay = beat / 4 = 0.4/4 s = 100ms
-# delay = (4n + 3)/Hclk
+# Input clock is ? 12MHz
+# delay = beat*1/4 = 0.4*1/4 = 0.1s
+#		= (4n + 3)/Hclk
 # n = (0.1*12*10^6 - 3)/4 = 0x493DF
 #
 delay:
     ldr r0, =0x493DF
-3:
+2:
     subs r0, r0, #1         @ Note: cpsr_f changed, bits[31:24]
-    bne 3b
+    bne 2b
     mov pc, lr              @ return
 
 #                     Bits Map
@@ -194,7 +190,10 @@ delay:
 .ltorg
 .align 2
 goddess_start:
-	.word 3, 3, 4, 5, 5, 4, 3, 2, 1, 1, 2, 3, 3, 3+(1<<8), 2+(1<<8), 2, 2
+	.word 3, 3, 4, 5,   5, 4, 3, 2,     1, 1, 2, 3,     3, 3+(1<<8), 2+(1<<8), 2, 2
+	.word 3, 3, 4, 5,   5, 4, 3, 2,     1, 1, 2, 3,     2, 2+(1<<8), 1+(1<<8), 1, 1
+	.word 2, 2, 3, 1,   2, 3+(1<<8), 4+(1<<8), 3, 1,    2, 3+(1<<8), 4+(1<<8), 3, 2,     1, 2, 5+(1<<4), 3
+	.word 3, 3, 4, 5,   5, 4, 3, 4+(1<<8), 2+(1<<8),    1, 1, 2, 3,     2, 2+(1<<8), 1+(1<<8), 1, 1
 goddess_end:
 	.long .
 
@@ -204,14 +203,14 @@ goddess_end:
 #    int tcfg1;
 #    int tcntb0;
 #  }
-doremi_start:			@ migh pitch
-	.word 2, 0, 5108	@ do
-	.word 2, 0, 4551	@ re
-	.word 2, 0, 4295	@ mi
-	.word 2, 0, 3827	@ fa
-	.word 2, 0, 3409	@ sol
-	.word 2, 0, 3037	@ la
-	.word 2, 0, 2867	@ si
+doremi_start:			@ migh pitch, 1=4D
+	.word 0, 2, 5108	@ do
+	.word 0, 2, 4551	@ re
+	.word 0, 2, 4295	@ mi
+	.word 0, 2, 3827	@ fa
+	.word 0, 2, 3409	@ sol
+	.word 0, 2, 3037	@ la
+	.word 0, 2, 2867	@ si
 doremi_end:
 	.long .
 
