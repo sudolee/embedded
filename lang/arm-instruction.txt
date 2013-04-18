@@ -8,42 +8,6 @@
 	Rn: 地一个操作数寄存器
 	shifter_operand: 第二个操作数
 
-== 伪指令 ==
-1, macro / endm (相当与C里的函数)
-	- 指令格式
-		.macro macroname {$param1} {$param2} ...
-		@commands
-		.endm
-	- note
-		macroname是定义的宏名, paramx是宏指令的参数, 当宏指令被展开式将被替换成相应的值, 类似于函数中的形式参数.
-		e.g. 
-		  .macro  func,val,len
-		  mov     r0, #\val
-		  mov     r1, #\len
-		  .endm
-	- 可以使用.if宏开关来定义宏指令, .exitm可以跳出宏
-		e.g. 
-		  .macro shiftleft reg, shift
-		  .if \shift < 0
-		  mov \reg, \reg, asr #-\shift
-		  .exitm
-		  .endif
-		  mov \reg, \reg, lsl #\shift
-		  .endm
-
-2, .rept (重复执行指令)
-	- 指令格式
-		.rept <repeat>
-		some commands...
-		.endr
-
-3, 局部标号: 向后跳用b, 向前跳用f, 比如:
-0:
-	b 0b
-	b 1f
-1:
-	nop
-
 == 寻址方式 ==
 = 数据处理指令寻址方式 =
 	<opcode>{<cond>}{S} <Rd>, <Rn>, <shift_operand>
@@ -227,14 +191,24 @@ Increment: U=1, 内存块在Rn上方
 3, mcr / mrc
 	协处理器寄存器到cpu寄存器的读写指令 (如果操作失败将产生指令异常中断)
 
-== gnu arm assembly ==
-1, 依赖机器(平台)的指令
-	- .arm 			使用arm模式汇编
-	- .thumb 		使用thumb模式汇编
-	- .code16		使用thumb模式汇编
-	- .code32		使用arm模式汇编
-	- .force_thumb	强制使用thumb模式汇编(即使不支持)
-	- .thumb_func	Mark entry point as thumb coded(force bx entry)
-	- .ltorg		Start a new literal pool
-
-2, 标号代表它所在的地址, 因而也可以用作函数或者变量.
+== register naming ==
++----------+-----------+--------------------------------------------------+
+| Register | APCS name | APCS role                                        |
++----------+-----------+--------------------------------------------------+
+| r0       | a1        | argument 1/scratch register/result               |
+| r1       | a2        | argument 2/scratch register/result               |
+| r2       | a3        | argument 3/scratch register/result               |
+| r3       | a4        | argument 4/scratch register/result               |
+| r4       | v1        | register variable                                |
+| r5       | v2        | register variable                                |
+| r6       | v3        | register variable                                |
+| r7       | v4        | register variable                                |
+| r8       | v5        | register variable                                |
+| r9       | sb/v6     | static base/register variable                    |
+| r10      | sl/v7     | stack limit/stack chunk handle/register variable |
+| r11      | fp/v8     | frame pointer/register variable                  |
+| r12      | ip        | scratch register/new-sb in inter-link-unit calls |
+| r13      | sp        | lower end of the current stack frame             |
+| r14      | lr        | link register/scratch register                   |
+| r15      | pc        | program counter                                  |
++----------+-----------+--------------------------------------------------+

@@ -65,6 +65,7 @@ tcfg0_ready:
 	beq 0f
 	tst r11, #(1<<8)
 	movne r0, #2		@ this pitch keep 100ms*2, time=beat*1/2
+	bne 0f
 	tst r11, #(1<<9)
 	movne r0, #1		@ this pitch keep 100ms*1, time=beat*1/4
 	#TODO: 1/8 not supported#
@@ -81,8 +82,8 @@ next_pitch:
 	ldr r3, [r1]
 	ldr r0, [r2, r3]		@ return r0
 	add r3, r3, #4			@ update goddess_current_offset
-	cmp r3, #(goddess_start - goddess_end)
-	movgt r3, #0
+	cmp r3, #(goddess_end - goddess_start)
+	movge r3, #0			@ clear r3, if r3 >= max
 	str r3, [r1]
 	mov pc, lr
 .ltorg
@@ -93,13 +94,13 @@ goddess_current_offset:
 get_pwm_conf:
 	ldr r1, =doremi_start
 	and r0, r0, #0xF
+	sub r0, r0, #1			@ doremi table based on "0"
 	add r3, r1, r0
 	ldm r3, {r0-r2}
 	mov pc, lr
 
 #
-# void pwm_update(int tcfg0, int tcfg1, int tcntb0, int tcmpb0);
-# 	So far, tcmpb0 not used.
+# void pwm_update(int tcfg0, int tcfg1, int tcntb0);
 #
 pwm_update:
 	stmdb r12!, {r4,r5,lr}
@@ -109,22 +110,22 @@ pwm_update:
 	ldr r4, =0x51000000 @ TCFG0 -> [7:0] for timer0/1 prescaler(0~255)
 	ldr r5, [r4]
 	bic r5, r5, #0xFF	@ clear [7:0]
-	orr r0, r0, r5		@ set [7:0]
-	str r0, [r4]
+	orr r5, r5, r0		@ set [7:0]
+	str r5, [r4]
 
 	# TCFG1 -> [3:0] 0000=1/2,0001=1/4,0010=1/8,0011=1/16,01xx=external tclk0
 	and r1, r1, #0xF
 	ldr r4, =0x51000004
 	ldr r5, [r4]
 	bic r5, r5, #0xF	@ clear [3:0]
-	orr r1, r1, r5		@ set [3:0]
-	str r1, [r4]		@ divide ?
+	orr r5, r5, r1		@ set [3:0]
+	str r5, [r4]		@ divide ?
 
 	ldr r4, =0x5100000C @ TCNTB0
 	str r2, [r4]
 
-	mov r5, #0x0
 	ldr r4, =0x51000010 @ TCMPB0
+	mov r5, r2, lsr #1	@ half of tcntb0
 	str r5, [r4]
 
 	ldr r4, =0x51000008 @ TCON
@@ -138,13 +139,14 @@ pwm_update:
 
 	ldmia r12!, {r4,r5,pc}
 
-# void lights(int delay);
+# void lights(int beat);
 lights:
-	stmdb r12!, {r4-r7,lr}
+	stmdb r12!, {r4-r9,lr}
+	mov r9, r0			@ ndelay
 
 	ldr r5, =0x56000014 @GPBDAT
-	ldr r1, =lights_counter
-	ldm r1, {r6,r7}
+	ldr r8, =lights_counter
+	ldm r8, {r6,r7}
 1:
 	ldr r4, [r5]
 	orr r4, #0x1E0			@ mask all leds
@@ -155,11 +157,11 @@ lights:
 	addne r6, r6, #1
 	str r4, [r5]
 	bl delay
-	subs r0, r0, #1
+	subs r9, r9, #1
 	bne 1b
 
-	stm r1, {r6,r7}
-	ldmia r12!, {r4-r7,pc}
+	stm r8, {r6,r7}
+	ldmia r12!, {r4-r9,pc}
 .ltorg
 lights_counter:
 	.word 0, 0x20			@ default: r6, r7

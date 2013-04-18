@@ -1,0 +1,223 @@
+
+== coding notes ==
+1, 标号代表它所在的地址, 因而也可以用作函数或者变量.
+
+== 依赖机器(平台)的指令 ==
+	- .arm 			使用arm模式汇编
+	- .thumb 		使用thumb模式汇编
+	- .code16		使用thumb模式汇编
+	- .code32		使用arm模式汇编
+	- .force_thumb	强制使用thumb模式汇编(即使不支持)
+	- .thumb_func	Mark entry point as thumb coded(force bx entry)
+	- .ltorg		Start a new literal pool(数据缓冲池)
+
+== 伪指令 ==
+= 符号定义伪指令 =
+0, .entry
+	标记程序入口
+	
+1, .global symbol / .globl symbol
+ 定义一个全局符号, 代码的任何地方都可以访问.
+ 对应的: .extern
+	用来访问外部的全局符号
+
+2, .local symbol1, symbol2,...
+ 定义一个局部符号, 外部无法访问
+
+3, .equ symbol, expression / .set symbol, expression
+ 在程序中用$symbol使用value的值. 静态的, 值不能修改.
+
+4, .type <symbol>, function/object
+ symbol符号作为"函数(function)"或者"数据(object)"的开始.
+ function/object前面可能要求有@/#前缀.
+
+5, 局部标号: 向后跳用b(ehind), 向前跳用f(ront), 比如:
+	0:
+		b 0b
+		b 1f
+	1:
+		nop
+
+= 数据定义伪指令 =
+1, .space size,fill / .skip size,fill
+	接下来的size个bytes用fill填充. 如果",fill"被省略, 将填充"0"
+
+2, .byte expressions1, expressions2, ...
+
+3, .word expressions1, expressions2, ...
+	预留32bits, 用expressions1填充.
+4, .hword expressions
+	预留16bits, 用expressions1填充.
+[Note]: .word和.hword是体系结构依赖的, 可能.word是16bits, 
+		所以尽量采用.short/.long/.int
+
+5, .short expressions
+	预留16bits, 用expressions1填充.
+	
+6, .long expressions /  .int expressions
+	预留32bits, 用expressions1填充.
+
+7, .fill repeat, size, value
+	以size bytes的大小, 用value填充之, 重复repeat次.
+
+8, .ltorg
+	Start a new literal pool(数据缓冲池), 用于在代码段插入数据.
+
+9, .ascii "string"...
+   .asciz "string"...
+	Note: ascii和asciz的区别是asciz在字符串结尾添加"\0"
+
+10, .string .../ .string8 .../ .string16 .../ .string32 .../ .string64 ...
+	e.g
+        .string32 "BYE"
+     expands to:
+     	.string   "B\0\0\0Y\0\0\0E\0\0\0"  /* On little endian targets.  */
+     	.string   "\0\0\0B\0\0\0Y\0\0\0E"  /* On big endian targets.  */
+		
+11, .align expr, fill, max
+	地址对齐.
+	expr: 按(1<<expr)bytes对齐, 如果当前地址不是(1<<expr)的整数倍就用fill填充之； 如果是整数倍, 什么也不做.
+		(i386,ppc,arm,strongarg的.align是这种对齐方式；有的体系结构可能直接按abs-expr1 bytes对齐, 详见gas)
+	fill: 对齐时, 跳过的每个byte里填充的数值
+	max: 跳过最大bytes, 如果对齐时需要填充的bytes大于max, 则放弃对齐.
+	Note: 可以省略fill只留下逗号
+	e.g
+		.align 3			(align to 8bytes, fill with "0")
+		.align 2, 0xFF, 3	(align to 4bytes, fill with 0xFF, skip limited within 3bytes)
+		.align 4,,4			(align to 16bytes, fill with no-op, skip limited within 4bytes)		
+	
+12, .balign[wl] expr, fill, max
+	地址对齐(类似.align)
+	expr: 按expr bytes对齐
+	fill：对齐时，跳过的每个byte里填充的数值
+	max: 同.align
+	
+	.balignw和.balign的区别在于: 填充fill时按word(16bits)填充
+	.balignl: 填充fill时按longword(32bits)填充
+
+13, .fill repeat, size, value
+
+14, symbol .comm, length
+	预留symbol所占空间大小的内存
+	如果链接时(ld),没有在其他文件里找到该symbol, 则预留length bytes的空间
+	如果有多个同名的symbol, 按最大的预留
+
+= 控制类伪指令 =
+1,	.if absolute expression
+	.else
+	.elseif absolute expression
+	.endif
+	[Note]:
+		.ifdef symbol: 如果symbol被定义，则执行该语句块
+		
+2, .rept (重复代码块)
+	- 指令格式
+		.rept <repeat>
+		some directive...
+		.endr
+
+3, .macro / .endm (相当于C里的宏)
+	- 指令格式
+		.macro macname macargs ...
+		@commands
+		.endm
+	- note
+		macroname是定义的宏名, macargs是宏指令的参数, 当宏指令被展开式将被替换成相应的符号.
+		e.g. 
+		  .macro  func, abs-val, abs-len
+		  mov     r0, #\val
+		  mov     r1, #\len
+		  .endm
+	- 可以使用.if宏开关来定义宏指令, .exitm可以跳出宏
+		e.g. 
+		  .macro shiftleft reg, shift
+		  .if \shift < 0
+		  mov \reg, \reg, asr #-\shift
+		  .exitm
+		  .endif
+		  mov \reg, \reg, lsl #\shift
+		  .endm
+
+= 其他伪指令 =
+1, .extern symbol
+	在汇编代码里声明一个外部符号. 链接时必须和用到的文件一起编译.
+	p.s. 在c代码中调用汇编代码里的.globl函数时:
+		extern void func(void);
+		
+2,  .type symbol, <type description>
+	   .type <symbol> STT_<TYPE_IN_UPPER_CASE>
+       .type <symbol>,#<type>
+       .type <symbol>,@<type>
+       .type <symbol>,%<type>
+       .type <symbol>,"<type>"
+	定义一个符号的类型, type可以是: object/function
+	STT_*可取的值有: STT_OBJECT/STT_FUNC
+	
+= 汇编伪指令 =
+1, NOP
+	空操作, mov r0, r0
+	
+2,  ldr <register> , = <expression>
+	如果expression是常量, 且能够用mov或mvn表示(是否有效立即数), 则用mov或mvn代替ldr.
+	否则, 将expression存入最近的ltorg里, 并用pc+offset的形式进行ldr.
+
+3, .include "file"
+	类似c语言的#include	
+4, .incbin "file"[,skip[,count]]
+	将文件照字面包含到当前位置
+	skip: 跳过file的头skip bytes
+	count：要load进来的bytes数
+	[Note]:
+		- (.include/.incbin)要load进来的文件需要加到搜索路径里, -Idir
+		- (.incbin)注意对齐
+
+== inline assembly ==
+1, 扩展内嵌汇编的格式(external inline assembly format):
+ __asm__("assembly code" : output locations : input operands : changned registers);
+
+2, 全局变量: 可以直接引用
+
+3, 寄存器: 需要用两个"%", e.g. "movl $1024, %%eax;"
+
+4, 占位符: %<number>
+ e.g. %0, %1, %2, %3...
+ - 如果在一个代码块中使用了多个占位符, 则必须按%0, %1, %2...的顺序进行设置对应引用的输入输出值.
+  e.g. func()中string设置%0, len设置%1.
+ - 需要设置"约束符" (详见约束符表)
+
+5, 使用内存位置
+ 设置好输入输出值的约束符即可.
+
+6, 指定输入和输出:
+ 多个输入输出值用","(逗号)隔开.
++-----------+----------------------------------------+
+| 约束符    | 描述                                   |
++-----------+----------------------------------------+
+| 输入约束符                                         |
++-----------+----------------------------------------+
+| a         | 使用%eax, %ax, %al寄存器               |
+| b         | 使用%ebx, %bx, %bl寄存器               |
+| c         | 使用%ecx, %cx, %cl寄存器               |
+| d         | 使用%edx, %dx, %dl寄存器               |
+| S         | 使用%esi, %si寄存器                    |
+| D         | 使用%edi, %di寄存器                    |
+| r         | 使用任意通用寄存器                     |
+| q         | 使用%eax, %ebx, %ecx, %edx寄存器之一   |
+| A         | 对于64位值,使用%eax和%edx寄存器        |
+| f         | 使用浮点寄存器                         |
+| t         | 使用第一个(顶部的)浮点寄存器           |
+| u         | 使用第二个浮点寄存器                   |
+| m         | 使用变量的内存位置                     |
+| o         | 使用偏移内存位置                       |
+| V         | 只使用直接内存位置                     |
+| i         | 使用立即整数值                         |
+| n         | 使用值已知的立即整数值                 |
+| g         | 使用任何可用的寄存器或者内存位置       |
++-----------+----------------------------------------+
+| 输出约束                                           |
++-----------+----------------------------------------+
+| +         | 可读可写                               |
+| =         | 只写                                   |
+| %         | 如果需要操作数可以和下一个操作数切换   |
+| &         | 在内联函数完成前,可以删除或者重新使用  |
++-----------+----------------------------------------+

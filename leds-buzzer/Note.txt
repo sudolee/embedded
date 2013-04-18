@@ -69,14 +69,14 @@
 = pwm timer =
 1, GPB0 configure as TOUT0 function.
 2, 
-									  TCMPB0  TCNTB0
-									    |       |
+                                      TCMPB0  TCNTB0
+                                         |     |
 Pclk----> prescaler-----> divider-----> ctrl logic-----> TOUT0
 12MHz     8-bits          1/2
           0~255           1/4           0 ~ 65535
-						  1/8
-						  1/16
-						  TCLK0
+                          1/8
+                          1/16
+                          TCLK0
 
 3, registers
 +-------+------------+------------------------------------+-------------+
