@@ -39,7 +39,7 @@ reset:
 	str r0, [r1]
 
 	# set stack pointer
-	ldr r12, =tiny_stack_top
+	ldr sp, =tiny_stack_top
 #
 # @r11: value of next pitch
 main:
@@ -83,7 +83,7 @@ next_pitch:
 	ldr r0, [r2, r3]		@ return r0
 	add r3, r3, #4			@ update goddess_current_offset
 	cmp r3, #(goddess_end - goddess_start)
-	movge r3, #0			@ clear r3, if r3 >= max
+	movhs r3, #0			@ clear r3, if r3 >= max
 	str r3, [r1]
 	mov pc, lr
 .ltorg
@@ -103,7 +103,7 @@ get_pwm_conf:
 # void pwm_update(int tcfg0, int tcfg1, int tcntb0);
 #
 pwm_update:
-	stmdb r12!, {r4,r5,lr}
+	stmdb sp!, {r4,r5,lr}
 
 	# tcfg0 configure
 	and r0, r0, #0xFF
@@ -137,11 +137,11 @@ pwm_update:
 	orr r5, r5, #0x1	@ if not start, let it run
 	str r5, [r4]
 
-	ldmia r12!, {r4,r5,pc}
+	ldmia sp!, {r4,r5,pc}
 
 # void lights(int beat);
 lights:
-	stmdb r12!, {r4-r9,lr}
+	stmdb sp!, {r4-r9,lr}
 	mov r9, r0			@ ndelay
 
 	ldr r5, =0x56000014 @GPBDAT
@@ -161,7 +161,7 @@ lights:
 	bne 1b
 
 	stm r8, {r6,r7}
-	ldmia r12!, {r4-r9,pc}
+	ldmia sp!, {r4-r9,pc}
 .ltorg
 lights_counter:
 	.word 0, 0x20			@ default: r6, r7
@@ -216,7 +216,10 @@ doremi_start:			@ migh pitch, 1=4D
 doremi_end:
 	.long .
 
-.bss
+# .ltorg-> .bss is not okay
+# the address where bss segment start of is so high, caused by default ld script.
+# so, set it in pool
+.ltorg
 .align 2
 tiny_stack:
 	.skip 128

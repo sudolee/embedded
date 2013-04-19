@@ -83,6 +83,10 @@
 			/DISCARD/ : { *(.gnu*) }
 		}
 
+	[Note]:
+		default ld script is built-in ld binary now.
+		this script set the address where bss start of so high. So, be careful.
+
 3, objcopy
 	Copy and translate object files.
 	[options]
