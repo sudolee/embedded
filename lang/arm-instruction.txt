@@ -191,6 +191,29 @@ Increment: U=1, 内存块在Rn上方
 3, mcr / mrc
 	协处理器寄存器到cpu寄存器的读写指令 (如果操作失败将产生指令异常中断)
 
+
+== condition codes ==
++---------------+--------------+-----------------------------------+--------------------------------------+
+| cond[31:28]   | symbol       | meaning                           | *psr flag state                      |
++---------------+--------------+-----------------------------------+--------------------------------------+
+| 0000          | eq           | equal                             | Z=1                                  |
+| 0001          | ne           | not equal                         | Z=0                                  |
+| 0010          | cs/hs        | carry set/unsigned higher or same | C=1                                  |
+| 0011          | cc/lo        | carry clear/unsigned lower        | C=0                                  |
+| 0100          | mi           | minus/negative                    | N=1                                  |
+| 0101          | pl           | plus/positive or zero             | N=0                                  |
+| 0110          | vs           | overflow                          | V=1                                  |
+| 0111          | vc           | no overflow                       | V=0                                  |
+| 1000          | hi           | unsigned higher                   | C=1 and Z=0                          |
+| 1001          | ls           | unsigned lower or same            | C=0 and Z=1                          |
+| 1010          | ge           | signed greater than or equal      | (N=V=1) or (N=V=0)                   |
+| 1011          | lt           | signed less than                  | (N=1 and V=0) or (N=0 && V=1)        |
+| 1100          | gt           | signed greater than               | (Z=1 && N=1 && V=0) or (N=0 && V=0)  |
+| 1101          | le           | signed less than or equal         | Z=1 or N!=V                          |
+| 1110          | al           | Always                                                                   |
+| 1111          | not define in ARMV4. the same to "al" in ARMV5 or above                                 |
++---------------+--------------+----------------------+---------------------------------------------------+
+
 == register naming ==
 +----------+-----------+--------------------------------------------------+
 | Register | APCS name | APCS role                                        |
