@@ -11,6 +11,7 @@
 	PWM music box(Happy Goddess).
 
 4, Button using.
+	pushing button lights related led.
 
 5, Uart using.
 

@@ -1,0 +1,101 @@
+
+= plan =
+I want light led(s) while related button is pushed,
+	and turn off while free button.
+
+1, bits map
+	a) bit [4:0] is in use, others reserved.
+	b) bit[4]: 1 -> turn on; 0 -> turn off
+	c) bit[3:0]: light relate led(s)
+		x: off; o: on
+		1 -> xxxo
+		2 -> xxox
+		3 -> xxoo
+		4 -> xoxx
+		5 -> xoxo
+		6 -> xoox
+		
+= How buttons connect to SoC =
+k1 -> EINT8/GPG0
+k2 -> EINT11/GPG3
+k3 -> EINT13/GPG5
+k4 -> EINT14/GPG6
+k5 -> EINT15/GPG7
+k6 -> EINT19/GPG11
+
+VDD3.3V
+    |
+	|____ EINT8
+	|
+[button]
+	|
+	GND
+
+= interrupt arch =
+                                                                               intpnd
+Request sources --> SubSrcPnd --> submask ----> srcpnd ----> mask --             |
+(with sub-register)                        ^             |         |____priority --> irq
+                                           |             |__ mode /
+Request sources ---------------------------|             |        \
+(without sub-register)                                   |________O ---------------> fiq
+
+= identify which button pushed =
+k1~k6 work in interrupt mode, so, irq rountine is responssible for checking which button pushed,
+via set gpio in input mode.
+After checking, set gpio back into interrupt mode.
+
+= GPG registers =
+GPGCON 0x56000060
+GPGDAT 0x56000064
+GPGUP  0x56000068
+
+configure as EINT
+GPGCON &= ~(0x3<<0 | 0x3<<6 | 0x3<<10 | 0x3<<12 | 0x3<<14 | 0x3<<22)
+GPGCON |= 0x2<<0 | 0x2<<6 | 0x2<<10 | 0x2<<12 | 0x2<<14 | 0x2<<22
+
+configure as input
+GPGCON &= ~(0x3<<0 | 0x3<<6 | 0x3<<10 | 0x3<<12 | 0x3<<14 | 0x3<<22)
+
+input mode read data
+GPGDAT &= ~(0x1<<0 | 0x1<<3 | 0x1<<5 | 0x1<<6 | 0x1<<7 | 0x1<<11)
+
+EXTINT0 0x56000088
+EXTINT1 0x5600008C
+EXTINT2 0x56000090
+
+falling edge triggered
+EXTINT1 0xA<<0 | 0xA<<12 | 0xA<<20 | 0xA<<24 | 0xA<<28
+EXTINT2 0xA<<12
+
+EINTMASK 0x560000A4
+= ~(0x1<<8 | 0x1<<11 | 0x1<<13 | 0x1<<14 | 0x1<<15 | 0x1<<19)
+
+EINTPEND 0x560000A8 --> clear by write 1 to relate bit
+1: interrupt occur; 0: not occur
+bits = 0x1<<8 | 0x1<<11 | 0x1<<13 | 0x1<<14 | 0x1<<15 | 0x1<<19
+
+= interrupt registers =
+1, srcpnd 0x4A000000 -> bit=1, means interrupt occured
+bit[5] EINT8_23
+
+2, intmod 0x4A000004
+	default, all in irq mode(no fiq)
+
+3, intmsk 0x4A000008 -> bit=1, indicate int is masked
+bit[5] EINT8_23
+
+4, priority 0x4A00000C -> use default
+
+5, intpnd 0x4A000010 -> bit=1, means int occured
+bit[5] EINT8_23
+
+6, intoffset 0x4A000014
+0x5 = EINT8_23 occured
+
+= code flow =
+1, configure GPG
+2, configure interrupt registers
+3, check whether EINT8_23 ?
+4, which button pushed ?
+5, light relate led
+6, return from irs
