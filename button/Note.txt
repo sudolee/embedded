@@ -99,3 +99,10 @@ bit[5] EINT8_23
 4, which button pushed ?
 5, light relate led
 6, return from irs
+
+
+== Note ==
+1, clear irq/fiq bits in cpsr to enable irq/fiq
+2, init irq(sp,lr) and SVC registers respective
+3, pending register clear order:
+	eintpend -> srcpnd -> intpnd
