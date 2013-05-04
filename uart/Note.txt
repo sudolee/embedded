@@ -1,0 +1,53 @@
+
+== GPIO config ==
+GPHCON -> 0x56000070
+GPH2 -> TXD0
+GPH3 -> RXD0
+
+== clock setup ==
+[Note]:
+	Before use uart, we have to config clock to support high frequence(115KHz) uart baud-rate.
+
+1, registers
+-> locktime: after reset, wakeup or setup mpll/upll, there will be a interval before accessable.
+	default: 0xFFFFFFFF, means longest colktime
+-> mpllcon/upllcon:
+	there is a config table in page 7-21.
+	Our choice: mdiv=127, pdiv=2, sdiv=1
+		then: Finput(12MHz) -> Foutput(405HMz)
+	[Note]:
+		upllcon should be set before mpllcon.
+		And, need insert at least 7 nop between them.
+
+-> clkcon: clock will be enable or disable
+-> clkslow: not used
+-> clkdivn: =0111
+	Then, Fclk:Hclk:Pclk=6:3:1
+-> camdivn: not used
+
+== uart setup ==
+1, ulcon:
+	normal mode, odd parity, 1 stop bit, 8-bits data.
+2, ucon:
+	receive and send must be set as interrupt or polling mode.
+3, ufcon:
+	fifo related config, enable FIFO.
+4, utrstat:
+	rx/tx interrupt or dma stat.
+5, uerstat:
+	error stat.
+6, ufstat: FIFO stat.
+	bit[14] = 1, tx FIFO is full.
+	bit[5:0] != 0, rx FIFO is not empty.
+
+7, utxh:
+	Send buffer, access by byte, e.g:
+	little-endian: utxh0 -> 0x50000020 (only[7:0] accessable)
+	big-endian:    utxh0 -> 0x50000023 (only[7:0] accessable)
+
+8, urxh:
+	receive buffer, access by byte, (seem like utxh)
+
+9, ubrdivn = (int)(Uart-clock/(baud-rate * 16)) - 1
+			= (int)((405000000/6)/(115200*16)) - 1
+			= 35 or 36
