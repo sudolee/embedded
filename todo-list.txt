@@ -14,6 +14,7 @@
 	pushing button lights related led.
 
 5, Uart using.
+	-> vsnprintf()
 
 6, Download program into nand-flash and nor-flash.
 
