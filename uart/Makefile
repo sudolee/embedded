@@ -1,4 +1,5 @@
-CC = arm-linux-gnueabi-gcc -DDEBUG
+#CC = arm-linux-gnueabi-gcc -DDEBUG=1 -Wall
+CC = arm-linux-gnueabi-gcc -Wall
 LD = arm-linux-gnueabi-ld
 OBJCOPY = arm-linux-gnueabi-objcopy
 OBJDUMP = arm-linux-gnueabi-objdump
@@ -8,9 +9,10 @@ OPTIONS = -Os -fno-common -fno-builtin -ffreestanding -nostdinc -pipe -marm \
 
 all:
 	${CC} ${OPTIONS} start.s -c
-	${CC} ${OPTIONS} main.c -c
+	${CC} ${OPTIONS} umain.c -c
 	${CC} ${OPTIONS} clk.c -c
-	${LD} -Tbuild.lds start.o main.o clk.o -o Uart.elf
+	${CC} ${OPTIONS} print.c -c
+	${LD} -Tbuild.lds start.o clk.o umain.o print.o -o Uart.elf
 	${OBJCOPY} -S -O binary Uart.elf Uart.bin
 	${OBJDUMP} -D Uart.elf > u.s
 

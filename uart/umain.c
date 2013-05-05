@@ -1,9 +1,10 @@
 #include "type.h"
 #include "io.h"
+#include "print.h"
 
 #ifdef DEBUG
 extern void lights(int no);
-#endif
+#endif /* DEBUG */
 
 struct uart_res {
 	u32 ulcon0;
@@ -14,14 +15,21 @@ struct uart_res {
 	u32 uerstat0;
 	u32 ufstat0;
 	u32 umstat0;
-
-//	u32 utxh0;
-//	u32 urxh0;
+/*
+	u32 utxh0;
+	u32 urxh0;
+*/
+#ifndef BIG_ENDIAN
 	u8 txdata;
 	u8 pad0[3];
 	u8 rxdata;
 	u8 pad1[3];
-
+#else
+	u8 pad0[3];
+	u8 txdata;
+	u8 pad1[3];
+	u8 rxdata;
+#endif
 	u32 ubrdiv0;
 };
 
@@ -72,6 +80,36 @@ static void init_uart0(struct uart_res *port)
 	writel(&port->ubrdiv0, 36);
 }
 
+/* Export for other modlues */
+#if 0
+struct uart_res *get_port_entry(int no)
+{
+	if(no == 2)
+		return (struct uart_res *)0x50008000;
+	else if(no == 1)
+		return (struct uart_res *)0x50004000;
+	else
+		return (struct uart_res *)0x50000000;
+}
+#endif
+
+/* TODO: size seems too small */
+#define MAX_PRINTBUF_SIZE 80
+long serial_printf(struct uart_res *port, const char *format, ...)
+{
+	va_list args;
+	long rv;
+	char printbuffer[MAX_PRINTBUF_SIZE];
+
+	va_start(args, format);
+	rv = vsnprintf(printbuffer, sizeof(printbuffer), format, args);
+	va_end(args);
+
+    puts(port, printbuffer);
+
+	return rv;
+}
+
 void umain(void)
 {
 	struct uart_res *port0 = (struct uart_res *)0x50000000;
@@ -80,8 +118,20 @@ void umain(void)
 #endif
 
 	init_uart0(port0);
+#if 0
 	while(1)
 		puts(port0, "Hello, the cruel world...\n");
+#endif
+	while(1) {
+		serial_printf(port0, "%c,%c,%c,%c\n", '-', '+', '*', '/');
+		serial_printf(port0, "%s\n", __func__);
+		serial_printf(port0, "%#x\n", (u32)umain);
+		serial_printf(port0, "%#X\n", (u32)umain);
+		serial_printf(port0, "%#o\n", 1234);
+		serial_printf(port0, "%#+5.4x\n", 12345678);
+		serial_printf(port0, "%#+5.4s\n", "hello world...");
+		serial_printf(port0, "%#x\n", 0x1234567);
+	}
 
 #ifdef DEBUG
 	lights(3);

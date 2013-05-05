@@ -1,43 +1,3 @@
-.section ".text.uart"
-
-.extern clk_setup
-.extern umain
-
-.globl _start
-_start:
-	b reset
-	.rept 6
-	b debug
-	.endr
-
-debug:
-	b .
-
-reset:
-	# set the cpu to SVC32 mode, disable fiq and irq
-	msr cpsr_c, #(0x13 | 0xC0)
-
-	# init SVC mode stack pointer
-	ldr sp, =0xFFF
-	bic sp, sp, #0x7		@ align sp to 8
-
-	# disable watchdog
-	ldr r1, =0x53000000		@WTCON
-	mov r0, #0x0
-	str r0, [r1]
-
-#ifdef DEBUG
-	bl config_leds			@ Just used for debug
-#endif
-
-	bl clk_setup
-	bl umain
-	b .		@ stop there
-
-
-#ifdef DEBUG
-
-#### code below for debug ####
 config_leds:
 	# configure GPB5~8 for leds
 	ldr r1, =0x56000010		@GPBCON
@@ -77,7 +37,3 @@ delay:
     subs r0, r0, #1         @ Note: cpsr_f changed, bits[31:24]
     bne 0b
     mov pc, lr              @ return
-
-#endif /*debug*/
-
-.end

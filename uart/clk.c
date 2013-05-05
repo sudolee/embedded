@@ -3,7 +3,7 @@
 
 #ifdef DEBUG
 extern void lights(int no);
-#endif
+#endif /* DEBUG */
 
 struct clk_res {
 	u32 locktime;
