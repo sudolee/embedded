@@ -125,12 +125,13 @@ void umain(void)
 	while(1) {
 		serial_printf(0, "%c,%c,%c,%c\n", '-', '+', '*', '/');
 		serial_printf(0, "%s\n", __func__);
-		serial_printf(0, "%#x\n", (u32)umain);
+		serial_printf(0, "%p\n", umain);
 		serial_printf(0, "%#X\n", (u32)umain);
 		serial_printf(0, "%#o\n", 1234);
-		serial_printf(0, "%#+5.4x\n", 12345678);
-		serial_printf(0, "%#+5.4s\n", "hello world...");
+		serial_printf(0, "%#+6.4x\n", 12345678);
+		serial_printf(0, "%#+5.8s\n", "hello world...");
 		serial_printf(0, "%#x\n", 0x1234567);
+		serial_printf(0, "-> %s %d\n", "i'm:", 618);
 	}
 
 #ifdef DEBUG_LEDS
