@@ -1,6 +1,10 @@
 /*
  * Woo hoo, i found that asm code should be *.S, not *.s
  * If name you asm code with *.s... never do like this.
+ * 汇编源代码文件格式:*.S
+ * 编译源代码时,汇编结果的文件格式: *.s
+ * So, 根据编译过程: 预处理-> 汇编-> 编译-> 链接
+ * 如果错把汇编源代码命名为:*.s, 将导致编译时直接跳过前两个步骤(预处理-> 汇编)
  */
 
 == GPIO config ==
