@@ -320,7 +320,7 @@ next_flag:
 
 		case 'p':
 			/*
-			 * on 32-bits machine, sizeof(void *) = 4; on 64-bits machine, it's 8.
+			 * In 32-bits machine, sizeof(void *) = 4; In 64-bits machine, it's 8.
 			 * why +2 ? "0x" prefix consumes 2bytes.
 			 * FT_ZEROPAD -> leading zero
 			 * FT_SPECIAL -> "0x" prefix
