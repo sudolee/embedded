@@ -5,7 +5,7 @@ OBJDUMP = arm-linux-gnueabi-objdump
 
 OPTIONS = -Os -fno-common -fno-builtin -ffreestanding -nostdinc -pipe -marm \
 		  -mcpu=arm920t -mno-thumb-interwork -mlittle-endian -mabi=atpcs -msoft-float \
-		  -Wall# -DDEBUG_LEDS
+		  -Wall -DDEBUG_LEDS
 
 all:
 	${CC} ${OPTIONS} start.S -c
