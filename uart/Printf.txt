@@ -69,3 +69,5 @@ A format specifier follows this prototype:
 - e/E/f/g/G时:
 	L -> long double
 
+= dec convert =
+http://homepage.cs.uiowa.edu/~jones/bcd/decimal.html

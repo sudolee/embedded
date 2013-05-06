@@ -2,7 +2,10 @@
 #include "vaargs.h"
 
 #if 0
-/* needed while link */
+/*
+ * Needed while link, before i move serial_printf() to other file.
+ * ????
+ */
 static void *memcpy(void *dest, const void *src, u32 count)
 {
 	char *temp = dest;
@@ -93,7 +96,7 @@ static char *string(char *buf, char *end, char *s,
 static char *number(char *buf, char *end, u64 num,
 		int base, int prec, int width, int flags)
 {
-	/* we are called with base 8, 10 or 16, only, thus don't need "G..."  */
+	/* called with base 8, 10 or 16 */
 	static const char digits[] = "0123456789ABCDEF";
 
 	char temp[24];
@@ -127,7 +130,7 @@ static char *number(char *buf, char *end, u64 num,
 	if(need_prefix) {
 		width--;	/* reserved for 8 based(0) */
 		if(base == 16)
-			width--;	/* reserved for 16 based(0x/0X) */
+			width--;	/* reserved for 16 based(x/X) */
 	}
 
 	/* generate full string in temp[], in reverse order! */
@@ -136,7 +139,10 @@ static char *number(char *buf, char *end, u64 num,
 		temp[pos++] = '0';
 	} else if (base != 10) {	/* 8/16 base */
 		int mask = base - 1;
-		/* don't use shift variable there, otherwise, you need implement "__lshrdi3()" */
+		/*
+		 * Don't use shift variable there, otherwise, you need implement "__lshrdi3()"
+		 * e.g: use " num>>=3/4;" instead of "num >>= shift;"
+		 */
 
 		do {
 			temp[pos++] = (digits[((unsigned char)num) & mask]) | lowercase;

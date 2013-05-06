@@ -3,7 +3,9 @@
 
 #define NULL ((void*)0)
 
-/* Currently, not support 64-bits on my board. */
+/* Note:
+ * Currently, not support 64-bits on my board, use u32 instead.
+ */
 //typedef unsigned long long  u64;
 typedef unsigned long  u64;
 typedef unsigned long  u32;

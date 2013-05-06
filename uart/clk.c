@@ -1,9 +1,9 @@
-#include "io.h"
 #include "type.h"
+#include "io.h"
 
-#ifdef DEBUG
-extern void lights(int no);
-#endif /* DEBUG */
+#ifdef DEBUG_LEDS
+#include "debug.h"
+#endif /* DEBUG_LEDS */
 
 struct clk_res {
 	u32 locktime;
@@ -31,9 +31,10 @@ void clk_setup(void)
 
 	/* Pclk:Hclk:Pclk = 6:3:1 */
 	writel(&clk->clkdivn, (0<<3 | 3<<1 | 1<<0));
+
 //	writel(&clk->clkcon, 1<<10);	/* only enable uart clock is not okay */
 
-#ifdef DEBUG
+#ifdef DEBUG_LEDS
 	lights(1);
-#endif
+#endif /* DEBUG_LEDS */
 }

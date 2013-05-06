@@ -5,10 +5,10 @@ OBJCOPY = arm-linux-gnueabi-objcopy
 OBJDUMP = arm-linux-gnueabi-objdump
 
 OPTIONS = -Os -fno-common -fno-builtin -ffreestanding -nostdinc -pipe -marm \
-		  -march=armv4 -mcpu=arm920t -mno-thumb-interwork -mlittle-endian -mabi=atpcs -msoft-float
+		  -mcpu=arm920t -mno-thumb-interwork -mlittle-endian -mabi=atpcs -msoft-float
 
 all:
-	${CC} ${OPTIONS} button-int.s -c
+	${CC} ${OPTIONS} button-int.S -c
 	${LD} -e _start -Ttext 0x0 button-int.o -o button-int.elf
 	${OBJCOPY} -S -O binary button-int.elf button-int.bin
 	${OBJDUMP} -D button-int.elf > bi.s

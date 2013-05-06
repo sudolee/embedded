@@ -2,9 +2,9 @@
 #include "io.h"
 #include "print.h"
 
-#ifdef DEBUG
-extern void lights(int no);
-#endif /* DEBUG */
+#ifdef DEBUG_LEDS
+#include "debug.h"
+#endif /* DEBUG_LEDS */
 
 struct uart_res {
 	u32 ulcon0;
@@ -33,6 +33,7 @@ struct uart_res {
 	u32 ubrdiv0;
 };
 
+#if 0
 static char gutc(struct uart_res *port)
 {
 	/* Is rx fifo empty ? */
@@ -40,6 +41,7 @@ static char gutc(struct uart_res *port)
 		;
 	return readb(&port->rxdata);
 }
+#endif
 
 static void putc(struct uart_res *port, const char ch)
 {
@@ -81,25 +83,26 @@ static void init_uart0(struct uart_res *port)
 }
 
 /* Export for other modlues */
-#if 0
-struct uart_res *get_port_entry(int no)
+struct uart_res *get_port_entry(int port_no)
 {
-	if(no == 2)
+#if 0 /* So far, only serial port 0 in use. */
+	if(port_no == 2)
 		return (struct uart_res *)0x50008000;
-	else if(no == 1)
+	else if(port_no == 1)
 		return (struct uart_res *)0x50004000;
 	else
+#endif
 		return (struct uart_res *)0x50000000;
 }
-#endif
 
 /* TODO: size seems too small */
 #define MAX_PRINTBUF_SIZE 80
-long serial_printf(struct uart_res *port, const char *format, ...)
+long serial_printf(int port_no, const char *format, ...)
 {
 	va_list args;
-	long rv;
 	char printbuffer[MAX_PRINTBUF_SIZE];
+	long rv;
+	struct uart_res *port = get_port_entry(port_no);
 
 	va_start(args, format);
 	rv = vsnprintf(printbuffer, sizeof(printbuffer), format, args);
@@ -112,28 +115,25 @@ long serial_printf(struct uart_res *port, const char *format, ...)
 
 void umain(void)
 {
-	struct uart_res *port0 = (struct uart_res *)0x50000000;
-#ifdef DEBUG
+	struct uart_res *port0 = get_port_entry(0);
+#ifdef DEBUG_LEDS
 	lights(2);
-#endif
+#endif /* DEBUG_LEDS */
 
 	init_uart0(port0);
-#if 0
-	while(1)
-		puts(port0, "Hello, the cruel world...\n");
-#endif
+
 	while(1) {
-		serial_printf(port0, "%c,%c,%c,%c\n", '-', '+', '*', '/');
-		serial_printf(port0, "%s\n", __func__);
-		serial_printf(port0, "%#x\n", (u32)umain);
-		serial_printf(port0, "%#X\n", (u32)umain);
-		serial_printf(port0, "%#o\n", 1234);
-		serial_printf(port0, "%#+5.4x\n", 12345678);
-		serial_printf(port0, "%#+5.4s\n", "hello world...");
-		serial_printf(port0, "%#x\n", 0x1234567);
+		serial_printf(0, "%c,%c,%c,%c\n", '-', '+', '*', '/');
+		serial_printf(0, "%s\n", __func__);
+		serial_printf(0, "%#x\n", (u32)umain);
+		serial_printf(0, "%#X\n", (u32)umain);
+		serial_printf(0, "%#o\n", 1234);
+		serial_printf(0, "%#+5.4x\n", 12345678);
+		serial_printf(0, "%#+5.4s\n", "hello world...");
+		serial_printf(0, "%#x\n", 0x1234567);
 	}
 
-#ifdef DEBUG
+#ifdef DEBUG_LEDS
 	lights(3);
-#endif
+#endif /* DEBUG_LEDS */
 }

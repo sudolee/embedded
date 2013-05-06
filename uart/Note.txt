@@ -1,3 +1,7 @@
+/*
+ * Woo hoo, i found that asm code should be *.S, not *.s
+ * If name you asm code with *.s... never do like this.
+ */
 
 == GPIO config ==
 GPHCON -> 0x56000070
