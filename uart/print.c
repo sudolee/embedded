@@ -319,7 +319,15 @@ next_flag:
 			continue;
 
 		case 'p':
-			/* not support currently */
+			/*
+			 * on 32-bits machine, sizeof(void *) = 4; on 64-bits machine, it's 8.
+			 * why +2 ? "0x" prefix consumes 2bytes.
+			 * FT_ZEROPAD -> leading zero
+			 * FT_SPECIAL -> "0x" prefix
+			 * FT_LOWERCASE -> show as lowercase
+			 */
+			str = number(str, end, (u64)va_arg(args, void *), 16, 0,
+					2*sizeof(void *) + 2, FT_ZEROPAD | FT_SPECIAL | FT_LOWERCASE);
 			continue;
 
 		case 'o':
