@@ -46,25 +46,35 @@ static int strnlen(const char *s, size_t count)
 	return sc - s;
 }
 
-/* TODO: only support n <= 0xFFFF, 16-bits */
-static int putdec(char *buf, u64 n)
+/*
+ * convert integer to character based 10.
+ * TODO: only support 0~0xFFFF, so far.
+ */
+static char *put_dec(char *buf, u64 uno)
 {
-	char p[4];
+#define MAXBITS 4
+	s64 sno;
+	char p[MAXBITS];
+	int nozero, i;
 
-	n &= 0xFFFF;
+	uno &= 0xFFFF;
+	sno = (s64)uno;
 
-	for(p[0] = '0' - 1; n >= 0; n -= 10000) ++p[0];
-	for(p[1] = '9' + 1; n <  0; n += 1000 ) --p[1];
-	for(p[2] = '0' - 1; n >= 0; n -= 100  ) ++p[2];
-	for(p[3] = '9' + 1; n <  0; n += 10   ) --p[3];
+	for(p[0] = '0' - 1; sno >= 0; sno -= 10000)++p[0];
+	for(p[1] = '9' + 1; sno <  0; sno += 1000 )--p[1];
+	for(p[2] = '0' - 1; sno >= 0; sno -= 100  )++p[2];
+	for(p[3] = '9' + 1; sno <  0; sno += 10   )--p[3];
+	/* sno + '0' */
 
-	ADDCH(buf, p[0]);
-	ADDCH(buf, p[1]);
-	ADDCH(buf, p[2]);
-	ADDCH(buf, p[3]);
-	ADDCH(buf, n + '0');
+	for(i = 0, nozero = 0; i < MAXBITS; ++i) {
+		if((p[i] != '0') || nozero) {
+			nozero = 1;
+			ADDCH(buf, p[i]);
+		}
+	}
+	ADDCH(buf, sno + '0');
 
-	return 0;
+	return buf;
 }
 
 static char *string(char *buf, char *end, char *s,
@@ -153,8 +163,7 @@ static char *number(char *buf, char *end, u64 num,
 			}
 		} while (num);
 	} else { /* base 10 */
-//		pos = putdec(&temp[pos], num);
-		pos = putdec(temp, num);
+		buf = put_dec(buf, num);
 	}
 
 	/* printing 100 using %.2d gives "100", not "00" */
