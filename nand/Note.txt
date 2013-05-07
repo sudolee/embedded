@@ -1,0 +1,6 @@
+
+
+= coding note = 
+1, If you use rodata in your function(maybe, more than 3chars),
+	in the front of this function, asm need copy rodata from .rodata segement
+	into stack. And, request memcpy() at this moment.

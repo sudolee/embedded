@@ -18,7 +18,7 @@ reset:
 	msr cpsr_c, #(0x13 | 0xC0)
 
 	# init SVC mode stack pointer
-	ldr sp, =0xFFF
+	ldr sp, =STACK_TOP
 	bic sp, sp, #0x7		@ align sp to 8
 
 	# disable watchdog

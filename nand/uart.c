@@ -6,6 +6,47 @@
 #include "debug.h"
 #endif /* DEBUG_LEDS */
 
+void *memcpy(void *dest, const void *src, size_t count)
+{
+	char *d = dest;
+	const char *s = src;
+
+	/* Not strcpy(), so, don't check '\0'. */
+	while(count--)
+		*d++ = *s++;
+	return dest;
+}
+
+static char *long2hexstr(char *buf, unsigned long n, int len)
+{
+	const char digits[] = "0123456789abcdef";
+	int mod;
+	/*
+	 * Before use digits[](in .rodata), asm need copy rodata into stack.
+	 *   So, memcpy() is requested.
+	 */
+
+	buf[--len] = '\0';
+	while(n >0 && len >0) {
+		mod = n & 0xF;
+		n >>= 4;
+		buf[--len] = digits[mod];
+	}
+
+	if(len > 2) {
+		buf[--len] = 'x';
+		buf[--len] = '0';
+	}
+	return buf + len;
+}
+
+void putslong(unsigned long n)
+{
+	char buf[sizeof(void *) + 3]; /* '0','x','\0' consume 3bytes */
+  
+	puts(get_port_entry(0), long2hexstr(buf, n, sizeof(buf)));
+}
+
 #if 0
 static char gutc(struct uart_res *port)
 {
@@ -56,7 +97,7 @@ static void init_uart0(struct uart_res *port)
 }
 
 /* Export for other modlues */
-struct uart_res *get_port_entry(int port_no)
+inline struct uart_res *get_port_entry(int port_no)
 {
 #if 0 /* So far, only serial port 0 in use. */
 	if(port_no == 2)

@@ -7,8 +7,10 @@ OPTIONS = -Os -fno-common -fno-builtin -ffreestanding -nostdinc -pipe -marm \
 		  -mcpu=arm920t -mno-thumb-interwork -mlittle-endian -mabi=atpcs -msoft-float \
 		  -Wall -DDEBUG_LEDS
 
+STACK_TOP := 0xFFF
+
 all:
-	${CC} ${OPTIONS} start.S -c
+	${CC} ${OPTIONS} start.S -c -DSTACK_TOP=${STACK_TOP}
 	${CC} ${OPTIONS} uart.c -c
 	${CC} ${OPTIONS} clk.c -c
 #	${CC} ${OPTIONS} print.c -c
