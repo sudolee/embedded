@@ -27,13 +27,13 @@ static char *long2hexstr(char *buf, unsigned long n, int len)
 	 */
 
 	buf[--len] = '\0';
-	while(n >0 && len >0) {
+	while(n > 0 && len > 0) {
 		mod = n & 0xF;
 		n >>= 4;
 		buf[--len] = digits[mod];
 	}
 
-	if(len > 2) {
+	if(len > 1) {
 		buf[--len] = 'x';
 		buf[--len] = '0';
 	}
@@ -42,9 +42,9 @@ static char *long2hexstr(char *buf, unsigned long n, int len)
 
 void putslong(unsigned long n)
 {
-	char buf[sizeof(void *) + 3]; /* '0','x','\0' consume 3bytes */
+	char buf[sizeof(void *)*2 + 3]; /* '0','x','\0' consume 3bytes */
   
-	puts(get_port_entry(0), long2hexstr(buf, n, sizeof(buf)));
+	puts(get_port_entry(0), long2hexstr(buf, n, sizeof(void *)*2 + 3));
 }
 
 #if 0

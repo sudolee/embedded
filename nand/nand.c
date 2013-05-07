@@ -14,6 +14,8 @@ void nand_main(void)
 #ifdef DEBUG_LEDS
 	lights(5);
 #endif
-	while(1)
+	while(1) {
 		puts(get_port_entry(0), "Hello, the curel world...\n");
+		putslong(0x12345678);
+	}
 }
