@@ -4,3 +4,73 @@
 1, If you use rodata in your function(maybe, more than 3chars),
 	in the front of this function, asm need copy rodata from .rodata segement
 	into stack. And, request memcpy() at this moment.
+2,
+	Linux line end with '\n' (10)
+	windows line end with '\r\n' (1310)
+
+
+= gpio config =
+1, mode config
+NCON = 0
+GPG13 = 1
+GPG14 = 1
+GPG15 = 0
+page = 512bytes, 4 address cycle, 8-bit bus width
+2, functions
+GPA22 -> nFCE
+GPA20 -> nFRE
+GPA19 -> nFWE
+GPA18 -> ALE
+GPA17 -> CLE
+G6	  -> fRnB(busy)
+
+= timing = 
+1, 1 Hclk cycle = 7.4ns
+2, SoC
+	ALE/CLE setup time = TACLS
+	ALE/CLE hold  time = TWRPH0 + TWRPH1
+	cmd/addr cycle time = TWRPH1
+	nWE/nRE hold  time = TWRPH0
+	data cycle time = TWRPH1
+3, nand flash
+	CLE/ALE/CE setup time >= 0
+	CLE/ALE/CE hold time  >= 10
+	data setup time >= 20
+	data hold  time >= 10
+	WE pulse width >= 25
+	write cycle time >= 50
+	WE high hold time >= 15
+4, result
+	TACLS >= 0			-> TACLS  = 1
+	TWRPH0 >= 25(35)	-> TWRPH0 = 35/7.4 - 1 = 4
+	TWRPH1 >= 15		-> TWRPH1 = 15/7.4 - 1 = 1
+
+Note: If CE setup time < 10, WE pulse width must >= 35.
+
+= nand =
+1, Standard NAND flash commands:
+#define NAND_CMD_READ0      0
+#define NAND_CMD_READ1      1
+#define NAND_CMD_RNDOUT     5
+#define NAND_CMD_PAGEPROG   0x10
+#define NAND_CMD_READOOB    0x50
+#define NAND_CMD_ERASE1     0x60
+#define NAND_CMD_STATUS     0x70
+#define NAND_CMD_STATUS_MULTI   0x71
+#define NAND_CMD_SEQIN      0x80
+#define NAND_CMD_RNDIN      0x85
+#define NAND_CMD_READID     0x90
+#define NAND_CMD_ERASE2     0xd0
+#define NAND_CMD_PARAM      0xec
+#define NAND_CMD_GET_FEATURES   0xee
+#define NAND_CMD_SET_FEATURES   0xef
+#define NAND_CMD_RESET      0xff
+
+#define NAND_CMD_LOCK       0x2a
+#define NAND_CMD_UNLOCK1    0x23
+#define NAND_CMD_UNLOCK2    0x24
+
+2, Extended commands for large page devices:
+#define NAND_CMD_READSTART  0x30
+#define NAND_CMD_RNDOUTSTART    0xE0
+#define NAND_CMD_CACHEDPROG 0x15
