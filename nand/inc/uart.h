@@ -30,7 +30,7 @@ struct uart_res {
 };
 
 struct uart_res *get_port_entry(int port_no);
-void puts(struct uart_res *port, const char *str);
+void puts(const char *str);
 void putslong(unsigned long n);
 
 #endif /* _UART_H_ */

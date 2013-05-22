@@ -2,6 +2,8 @@
 
 .extern clk_setup
 .extern uart_setup
+.extern nand_setup
+.extern loadbin
 
 .globl _start
 _start:
@@ -32,7 +34,8 @@ reset:
 
 	bl clk_setup
 	bl uart_setup
-	bl nand_main
+	bl nand_setup
+	bl loadbin
 	b .		@ stop there
 
 

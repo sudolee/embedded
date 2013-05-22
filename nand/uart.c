@@ -6,6 +6,8 @@
 #include "debug.h"
 #endif /* DEBUG_LEDS */
 
+#define DEFAULT_SERIAL (0)
+
 void *memcpy(void *dest, const void *src, size_t count)
 {
 	char *d = dest;
@@ -44,7 +46,7 @@ void putslong(unsigned long n)
 {
 	char buf[sizeof(void *)*2 + 3]; /* '0','x','\0' consume 3bytes */
   
-	puts(get_port_entry(0), long2hexstr(buf, n, sizeof(void *)*2 + 3));
+	puts(long2hexstr(buf, n, sizeof(void *)*2 + 3));
 }
 
 #if 0
@@ -68,10 +70,11 @@ static void putc(struct uart_res *port, const char ch)
 	writeb(&port->txdata, ch);
 }
 
-void puts(struct uart_res *port, const char *str)
+void puts(const char *str)
 {
+	struct uart_res *port0 = get_port_entry(0);
 	while(*str)
-		putc(port, *str++);
+		putc(port0, *str++);
 }
 
 #define GPHCON_REG 0x56000070

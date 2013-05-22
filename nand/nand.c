@@ -1,6 +1,9 @@
 #include "type.h"
 #include "io.h"
 #include "uart.h"
+#include "print.h"
+#include "str.h"
+#include "nand.h"
 
 #ifdef DEBUG_LEDS
 #include "debug.h"
@@ -28,54 +31,20 @@
 #define NF_STATUS_READY (1<<6)
 #define NF_STATUS_PASS (1<<0)
 
-/*0x4E000000*/
-struct nf_ctrl {
-	u32 nfconf;
-	u32 nfcont;
-	u32 nfcmmd;	/* [7:0] */
-	u32 nfaddr; /* [7:0] */
-	u32 nfdata; /* [7:0] */
-	u32 nfmeccd0;
-	u32 nfmeccd1;
-	u32 nfseccd;
-	u32 nfstat;
-	u32 nfestat0;
-	u32 nfestat1;
-	u32 nfmecc0;
-	u32 nfmecc1;
-	u32 nfsecc;
-	u32 nfsblk;
-	u32 nfeblk;
-};
-
-struct mtd_info {
-	struct nf_ctrl *nfctrl;
-
-	int (*nf_read)(struct mtd_info *mtd, u32 offset, void *data, u32 *len);
-	int (*nf_write)(struct mtd_info *mtd, u32 offset, void *data, u32 *len);
-	int (*nf_erase)(struct mtd_info *mtd, u32 offset, u32 len);
-
-	u32 writesize;
-	u32 blocksize;
-	u32 planesize;
-
-	u32 page_shift;
-	u32 block_shift;
-};
 static struct mtd_info mtdinfo;
 
 static void nf_wait_ready(struct mtd_info *mtd)
 {
-	while(!(readb(&mtd->nfctrl->nfstat) & 0x1))
+	while(!(readl(&mtd->nfctrl->nfstat) & 0x1))
 		;
 }
 
 static inline void cmd_ctrl(struct mtd_info *mtd, int cmd, int ctrl)
 {
 	if(ctrl & NF_CMD_CLE)
-		writel(&mtd->nfctrl->nfcmmd, cmd & 0xFF);
+		writeb(&mtd->nfctrl->nfcmmd, cmd & 0xFF);
 	else
-		writel(&mtd->nfctrl->nfaddr, cmd & 0xFF);
+		writeb(&mtd->nfctrl->nfaddr, cmd & 0xFF);
 }
 
 static void nf_command(struct mtd_info *mtd, int cmd, int column, int page)
@@ -85,7 +54,7 @@ static void nf_command(struct mtd_info *mtd, int cmd, int column, int page)
 	/* check and set pointer before program */
 	if(cmd == NAND_CMD_SEQIN) {
 		int readcmd;
-		if(column > mtd->writesize) {
+		if(column >= mtd->writesize) {
 			readcmd = NAND_CMD_READ2;
 			column -= mtd->writesize;
 		} else if(column < 256) {
@@ -108,71 +77,155 @@ static void nf_command(struct mtd_info *mtd, int cmd, int column, int page)
 		cmd_ctrl(mtd, page >> 16, ctrl);		/* A25~ */
 	}
 
-	ctrl = NF_CMD_ALE;
+	ctrl = NF_CMD_CLE;
 	switch(cmd) {
 		case NAND_CMD_ERASE1:
 			/* followed by erase2 */
 			cmd_ctrl(mtd, NAND_CMD_ERASE2, ctrl);
-			return;
-		case NAND_CMD_READID:
 		case NAND_CMD_PAGEPROG0:
-		case NAND_CMD_PAGEPROG1:
 		case NAND_CMD_STATUS:
+			/* After NAND_CMD_ERASE1 or NAND_CMD_PAGEPROG0,
+			 * we'll always check status.
+			 */
+			cmd_ctrl(mtd, NAND_CMD_STATUS, ctrl);
+			return;
+		case NAND_CMD_PAGEPROG1:
 		case NAND_CMD_STATUS_MULTI:
+		case NAND_CMD_SEQIN:
+		case NAND_CMD_READID:
 			return;
 
 		case NAND_CMD_RESET:
 		default:
-			break;
+			nf_wait_ready(mtd);
 	}
-	nf_wait_ready(mtd);
 }
 
-static u8 get_nfstatus(struct mtd_info *mtd)
+/*
+#define nf_write_byte(mtd, ch) writeb(&mtd->nfctrl->nfdata, (u8)(ch))
+*/
+static inline void nf_write_byte(struct mtd_info *mtd, u8 ch)
 {
-	nf_command(mtd, NAND_CMD_STATUS, -1, -1);
-	return readb(&mtd->nfctrl->nfdata);
+	writeb(&mtd->nfctrl->nfdata, ch);
+}
+
+static void nf_fill_oob(struct mtd_info *mtd, void *oob)
+{
+	/* oob size */
+	u32 bytes = mtd->writesize >> 5;
+
+	if(oob) {
+		outsb((u32)&mtd->nfctrl->nfdata, oob, bytes);
+	} else {
+		while(bytes--)
+			nf_write_byte(mtd, 0xFF);
+	}
+}
+
+static void nf_write_page(struct mtd_info *mtd, void *data, void *oob)
+{
+	outsb((u32)&mtd->nfctrl->nfdata, data, mtd->writesize);
+	nf_fill_oob(mtd, oob);
+}
+
+/*
+ * 0x80 -> address & 528byte data -> 0x10 -> 0x70 -> read status
+ */
+static int nf_write(struct mtd_info *mtd, u32 offset, void *buf, u32 *len)
+{
+	u8 stat;
+	u32 column, page, bytes;
+	u8 *data = (u8 *)buf;
+
+	if((offset + *len) > (1 << mtd->device_shift)) {
+		puts("nf_write: invalid offset or length!\n");
+		return -1;
+	}
+
+	column = offset & ((1 << mtd->page_shift) - 1);
+	page = offset >> mtd->page_shift;
+
+
+	while(*len) {
+		bytes = mtd->writesize;
+		nf_command(mtd, NAND_CMD_SEQIN, 0x0, page);
+
+		/* clear leading bytes if offset not align to page */
+		for(; column; column--)
+			nf_write_byte(mtd, 0xFF);
+
+		if(*len < mtd->writesize) {
+			u32 i;
+			bytes = *len;
+			u32 remnant = mtd->writesize + (mtd->writesize >> 5) - bytes;
+
+			for(i = bytes; i > 0; i--)
+				nf_write_byte(mtd, *data++);
+			/* clear both left bytes and oob */
+			while(remnant--)
+				nf_write_byte(mtd, 0xFF);
+		} else {
+			nf_write_page(mtd, data, NULL);
+		}
+		*len -= bytes;
+
+		nf_command(mtd, NAND_CMD_PAGEPROG0, -1, -1);
+		while(!((stat = readb(&mtd->nfctrl->nfdata)) & NF_STATUS_READY))
+			;
+		if(stat & NF_STATUS_PASS)
+			puts("nf_write: write not passed!\n");
+	}
+
+	return 0;
 }
 
 /*
  * 0x60 -> block address -> 0xd0 -> read status -> i/o6=1? or RnB=1?
  * 	-> i/o0=0? -> error -> erase complete
  */
-static int nf_erase(struct mtd_info *mtd, u32 page, u32 count)
+static int nf_erase(struct mtd_info *mtd, u32 offset, u32 len)
 {
 	u8 stat;
-	u32 block = page & ~((1 << mtd->block_shift) - 1);
-
-	while(count--) {
-		nf_command(mtd, NAND_CMD_ERASE1, 0x0, block++);
-
-		while(!((stat = get_nfstatus(mtd)) & NF_STATUS_READY))
-			;
-		if(stat & NF_STATUS_PASS)
-			puts(get_port_entry(0), "Error: erase not passed!\n");
+	u32 block;
+	
+	if((offset + len) > (1 << mtd->device_shift)) {
+		puts("nf_erase: invalid offset or length!\n");
+		return -1;
 	}
 
+	block = (offset >> mtd->page_shift) & ~((1 << (mtd->block_shift - mtd->page_shift)) - 1);
+
+	while(len) {
+		nf_command(mtd, NAND_CMD_ERASE1, -1, block);
+
+		while(!((stat = readb(&mtd->nfctrl->nfdata)) & NF_STATUS_READY))
+			;
+		if(stat & NF_STATUS_PASS)
+			puts("Error: erase not passed!\n");
+
+		block++;
+		if(len < ((1 << mtd->block_shift) - 1))
+			len = 0;
+		else
+			len -= ((1 << mtd->block_shift) - 1);
+	}
+
+	return 0;
+}
+
+static int nf_read(struct mtd_info *mtd, u32 offset, void *data, u32 *len)
+{
+	/*TODO:*/
 	return 0;
 }
 
 static void hw_setup(struct mtd_info *mtd)
 {
 	mtd->nfctrl = (struct nf_ctrl *)0x4E000000;
+	/* tacls, twrph0, twrph1 */
 	writel(&mtd->nfctrl->nfconf, 1<<12 | 4<<8 | 1<<4);
 	writel(&mtd->nfctrl->nfcont, 0<<1 | 1<<0);
 	/*TODO*/
-}
-
-static void module_init(struct mtd_info *mtd)
-{
-	mtd->writesize = 512;
-	mtd->blocksize = 512*32;
-	mtd->planesize = 512*32*1024;
-	mtd->page_shift = 9;
-	mtd->block_shift = 14;
-	mtd->nf_read = 0;
-	mtd->nf_write = 0;
-	mtd->nf_erase = nf_erase;
 }
 
 inline struct mtd_info *get_mtd_info(void)
@@ -180,17 +233,23 @@ inline struct mtd_info *get_mtd_info(void)
 	return &mtdinfo;
 }
 
-void nand_main(void)
+void nand_setup(void)
 {
 	struct mtd_info *mtd = get_mtd_info();
-#ifdef DEBUG_LEDS
-	lights(5);
-#endif
-	hw_setup(mtd);
-	module_init(mtd);
 
-	while(1) {
-		puts(get_port_entry(0), "Hello, the curel world...\n");
-		putslong(0x12345678);
-	}
+	hw_setup(mtd);
+
+//	mtd->oobsize = mtd->writesize >> 5;
+	mtd->writesize = 512;
+//	mtd->blocksize = 512*32;
+//	mtd->planesize = 512*32*1024;
+
+	/* based on address */
+	mtd->page_shift = 9;
+	mtd->block_shift = 14;
+	mtd->device_shift = 25;
+
+	mtd->nf_read = 0;
+	mtd->nf_write = nf_write;
+	mtd->nf_erase = nf_erase;
 }
