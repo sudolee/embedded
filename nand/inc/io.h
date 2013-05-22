@@ -1,6 +1,8 @@
 #ifndef _IO_H_
 #define _IO_H_
 
+#include "type.h"
+
 #define mb() __asm__ __volatile__("":::"memory")
 
 #define readb(addr) (*(volatile u8  *)(addr))

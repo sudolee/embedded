@@ -249,7 +249,7 @@ void nand_setup(void)
 	mtd->block_shift = 14;
 	mtd->device_shift = 25;
 
-	mtd->nf_read = 0;
+	mtd->nf_read = nf_read;
 	mtd->nf_write = nf_write;
 	mtd->nf_erase = nf_erase;
 }

@@ -1,6 +1,8 @@
 #ifndef _NAND_H_
 #define _NAND_H_
 
+#include "type.h"
+
 struct nf_ctrl {
 	u32 nfconf;
 	u32 nfcont;
@@ -28,14 +30,15 @@ struct mtd_info {
 	int (*nf_erase)(struct mtd_info *mtd, u32 offset, u32 len);
 
 	u32 writesize;
-	u32 blocksize;
-	u32 planesize;
+//	u32 blocksize;
+//	u32 planesize;
 
 	u32 page_shift;
 	u32 block_shift;
 	u32 device_shift;
 };
 
+void nand_setup(void);
 struct mtd_info *get_mtd_info(void);
 
 #endif /* _NAND_H_ */

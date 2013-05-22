@@ -1,9 +1,6 @@
 .section ".text.nand"
 
-.extern clk_setup
-.extern uart_setup
-.extern nand_setup
-.extern loadbin
+.extern platform_main
 
 .globl _start
 _start:
@@ -32,10 +29,7 @@ reset:
 	bl config_leds			@ Just used for debug
 #endif
 
-	bl clk_setup
-	bl uart_setup
-	bl nand_setup
-	bl loadbin
+	bl platform_main
 	b .		@ stop there
 
 

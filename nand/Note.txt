@@ -72,3 +72,14 @@ Note: If CE setup time < 10, WE pulse width must >= 35.
 column addr: A0~A8 (A8 set by READ0/1/2 command)
 page addr: A9~A25
 block addr: A14~A25
+
+= memory map =
++---------------+  <- 0x0
+|   Nand.bin    |
++---------------+
+|   reserved    |
++---------------+  <- (0xFFF - 1024) & ~0x7
+|   image       |
++---------------+
+|   stack       |
++---------------+  <- 0xFFF & ~0x7

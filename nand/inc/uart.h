@@ -2,6 +2,8 @@
 #define _UART_H_
 /* Export for other modules */
 
+#include "type.h"
+
 struct uart_res {
 	u32 ulcon0;
 	u32 ucon0;
@@ -29,6 +31,7 @@ struct uart_res {
 	u32 ubrdiv0;
 };
 
+void uart_setup(void);
 struct uart_res *get_port_entry(int port_no);
 void puts(const char *str);
 void putslong(unsigned long n);

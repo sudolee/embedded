@@ -17,8 +17,9 @@ all:
 	${CC} ${OPTIONS} str.c -c
 	${CC} ${OPTIONS} nand.c -c
 	${CC} ${OPTIONS} loadbin.c -c
-#	${LD} -Tbuild.lds start.o clk.o uart.o print.o nand.o -o Nand.elf
-	${LD} -Tbuild.lds start.o clk.o uart.o str.o nand.o loadbin.o -o Nand.elf
+	${CC} ${OPTIONS} platform.c -c
+#	${LD} -Tbuild.lds start.o clk.o uart.o str.o print.o nand.o platform.o loadbin.o -o Nand.elf
+	${LD} -Tbuild.lds start.o clk.o uart.o str.o nand.o platform.o loadbin.o -o Nand.elf
 	${OBJCOPY} -S -O binary Nand.elf Nand.bin
 	${OBJDUMP} -D Nand.elf > n.S
 	gcc -Wall usr/mkimage.c -o mkimage
