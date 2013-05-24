@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Default download address: %#X\n", (0xFFF - 1024) & ~0x7);
+	printf("Default download address: %#X\n", 0x30000000);
 
 	return 0;
 }

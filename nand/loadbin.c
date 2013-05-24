@@ -23,7 +23,7 @@ static void check_magic(struct img_header *head)
 		mb();
 }
 
-#define DEFAULT_LOADADDR ((0xFFF - 1024) & ~0x7)
+#define DEFAULT_LOADADDR (0x30000000)
 void loadbin(void)
 {
 	void (*go)(void);
@@ -41,5 +41,6 @@ void loadbin(void)
 	mtd->nf_read(mtd, 0, (void *)DEFAULT_LOADADDR, &len);
 	go = (void *)DEFAULT_LOADADDR;
 #endif
+
 	go();
 }

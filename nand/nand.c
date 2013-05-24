@@ -13,7 +13,6 @@
 #define NAND_CMD_READ0      0   
 #define NAND_CMD_READ1      1   
 #define NAND_CMD_READ2      0x50 /* oob read */
-#define NAND_CMD_RNDOUT		0x5
 #define NAND_CMD_READID     0x90
 #define NAND_CMD_RESET      0xff
 #define NAND_CMD_SEQIN      0x80

@@ -1,18 +1,19 @@
+#include "clk.h"
 #include "uart.h"
 #include "nand.h"
 
-extern void clk_setup(void);
+extern void mem_setup(void);
 extern void loadbin(void);
 
-static void platform_init(void)
+void platform_init(void)
 {
 	clk_setup();
+	mem_setup();
 	uart_setup();
 	nand_setup();
 }
 
-void platform_main(void)
+void kmain(void)
 {
-	platform_init();
 	loadbin();
 }

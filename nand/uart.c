@@ -1,6 +1,7 @@
 #include "type.h"
 #include "io.h"
 #include "uart.h"
+#include "print.h"
 
 #ifdef DEBUG_LEDS
 #include "debug.h"
@@ -50,6 +51,22 @@ void putslong(unsigned long n)
 	puts(long2hexstr(buf, n, sizeof(void *)*2 + 3));
 }
 #endif
+
+#define MAX_PRINTBUF_SIZE 128
+long serial_printf(const char *format, ...)
+{
+	va_list args;
+	char printbuffer[MAX_PRINTBUF_SIZE];
+	long rv;
+
+	va_start(args, format);
+	rv = vsnprintf(printbuffer, sizeof(printbuffer), format, args);
+	va_end(args);
+
+	puts(printbuffer);
+
+	return rv;
+}
 
 #if 0
 static char gutc(struct uart_res *port)

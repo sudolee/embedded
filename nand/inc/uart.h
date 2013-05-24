@@ -35,5 +35,6 @@ void uart_setup(void);
 struct uart_res *get_port_entry(int port_no);
 void puts(const char *str);
 void putslong(unsigned long n);
+long serial_printf(const char *fmt, ...);
 
 #endif /* _UART_H_ */
