@@ -5,6 +5,9 @@
 
 #define mb() __asm__ __volatile__("":::"memory")
 
+#define min(x, y) (((x) > (y)) ? (y) : (x))
+#define max(x, y) (((x) > (y)) ? (x) : (y))
+
 #define readb(addr) (*(volatile u8  *)(addr))
 #define readw(addr) (*(volatile u16 *)(addr))
 #define readl(addr) (*(volatile u32 *)(addr))

@@ -6,8 +6,8 @@
 #include <unistd.h>
 
 typedef unsigned int u32;
-#define MAGIC_SIZE 16
-#define MAGIC_STR "Matti.Lee\0"
+#define MAGIC_SIZE 8
+#define MAGIC_STR "Matti.L\0"
 
 /*
  * +-----------------+ 

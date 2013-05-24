@@ -3,8 +3,8 @@
 
 typedef char* va_list;
 
-#define  _AUPBND                (sizeof(long) - 1)
-#define  _ADNBND                (sizeof(long) - 1)
+#define  _AUPBND                (sizeof(void *) - 1)
+#define  _ADNBND                (sizeof(void *) - 1)
 
 /* Variable argument list macro definitions */
 #define _bnd(X, bnd)            (((sizeof (X)) + (bnd)) & (~(bnd)))

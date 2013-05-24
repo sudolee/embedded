@@ -30,6 +30,7 @@ struct mtd_info {
 	int (*nf_erase)(struct mtd_info *mtd, u32 offset, u32 len);
 
 	u32 writesize;
+	u32 oobsize;
 //	u32 blocksize;
 //	u32 planesize;
 

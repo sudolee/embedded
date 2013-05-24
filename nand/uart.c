@@ -8,6 +8,7 @@
 
 #define DEFAULT_SERIAL (0)
 
+#if 0
 void *memcpy(void *dest, const void *src, size_t count)
 {
 	char *d = dest;
@@ -48,6 +49,7 @@ void putslong(unsigned long n)
   
 	puts(long2hexstr(buf, n, sizeof(void *)*2 + 3));
 }
+#endif
 
 #if 0
 static char gutc(struct uart_res *port)
