@@ -4,7 +4,7 @@
 		What're ! and ^ in ldm|stm? <-- Done [asm/arm-assembly-and-instruction.txt]
 
 2, Download program into board.
-	see [dl-debug/]
+	see dl-debug.
 
 3, Write an example to:
 	control leds and buzzer.
@@ -16,7 +16,8 @@
 5, Uart using.
 	-> vsnprintf()
 
-6, Download program into nand-flash and nor-flash.
+6, Download program into nand-flash.
+	see nand
 
 7, Store something into eeprom.
 
