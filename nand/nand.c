@@ -143,6 +143,7 @@ static int nf_write(struct mtd_info *mtd, u32 offset, void *buf, u32 *len)
 
 
 	while(*len) {
+		serial_printf("column = %d, len = %#X, page = %#X\n", column, *len, page);
 		bytes = mtd->writesize;
 		nf_command(mtd, NAND_CMD_SEQIN, 0x0, page);
 
@@ -153,9 +154,9 @@ static int nf_write(struct mtd_info *mtd, u32 offset, void *buf, u32 *len)
 		if(*len < mtd->writesize) {
 			u32 i;
 			bytes = *len;
-			u32 remnant = mtd->writesize + (mtd->writesize >> 5) - bytes;
+			u32 remnant = mtd->writesize + mtd->oobsize - bytes;
 
-			for(i = bytes; i > 0; i--)
+			for(i = bytes; i > 0; --i)
 				nf_write_byte(mtd, *data++);
 			/* clear both left bytes and oob */
 			while(remnant--)
@@ -164,6 +165,7 @@ static int nf_write(struct mtd_info *mtd, u32 offset, void *buf, u32 *len)
 			nf_write_page(mtd, data, NULL);
 		}
 		*len -= bytes;
+		page++;
 
 		nf_command(mtd, NAND_CMD_PAGEPROG0, -1, -1);
 		if(readb(&mtd->nfctrl->nfdata) & NF_STATUS_PASS)
