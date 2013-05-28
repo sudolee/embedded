@@ -152,9 +152,10 @@ static int nf_write(struct mtd_info *mtd, u32 offset, void *buf, u32 *len)
 			nf_write_byte(mtd, 0xFF);
 
 		if(*len < mtd->writesize) {
-			u32 i;
+			u32 i, remnant;
+
 			bytes = *len;
-			u32 remnant = mtd->writesize + mtd->oobsize - bytes;
+			remnant = mtd->writesize + mtd->oobsize - bytes;
 
 			for(i = bytes; i > 0; --i)
 				nf_write_byte(mtd, *data++);
@@ -165,6 +166,7 @@ static int nf_write(struct mtd_info *mtd, u32 offset, void *buf, u32 *len)
 			nf_write_page(mtd, data, NULL);
 		}
 		*len -= bytes;
+		data += bytes;
 		page++;
 
 		nf_command(mtd, NAND_CMD_PAGEPROG0, -1, -1);

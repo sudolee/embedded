@@ -42,5 +42,6 @@ void loadbin(void)
 	go = (void *)DEFAULT_LOADADDR;
 #endif
 
-	go();
+//	go();
+	puts("loadbin(): image download complete.\n");
 }
