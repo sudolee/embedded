@@ -28,6 +28,7 @@
 10, sound
 
 11, LCD
+	fft algo
 
 12, u-boot porting
 
